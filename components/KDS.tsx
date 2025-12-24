@@ -60,7 +60,6 @@ const TicketCard: React.FC<TicketCardProps> = ({ order, onBump }) => {
               </span>
               <div className="flex-1">
                 <div className="text-gray-900 dark:text-white font-bold text-lg leading-tight">{item.name}</div>
-                <div className="text-gray-500 dark:text-neutral-500 text-xs mt-0.5" dir="rtl">{item.nameAr}</div>
                 
                 {/* Modifiers */}
                 {item.modifiers.length > 0 && (

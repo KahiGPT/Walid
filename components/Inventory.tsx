@@ -1,8 +1,7 @@
-
 import React, { useState, useMemo } from 'react';
 import { INVENTORY_ITEMS, RECIPES, MENU_ITEMS, SUPPLIERS, MODIFIER_GROUPS, CATEGORIES } from '../constants';
 import { InventoryItem, MenuItem, ModifierGroup, ModifierOption } from '../types';
-import { Package, FileText, Settings, AlertTriangle, ArrowRightLeft, TrendingUp, Save, Search, Plus, Trash2, X, Check, ChevronRight, Truck, User, Calendar, Tag, Layers, Edit3, DollarSign, List, Image as ImageIcon } from 'lucide-react';
+import { Package, FileText, Settings, AlertTriangle, ArrowRightLeft, TrendingUp, Save, Search, Plus, Trash2, X, Check, ChevronRight, Truck, User, Calendar, Tag, Layers, Edit3, DollarSign, List, Image as ImageIcon, Upload } from 'lucide-react';
 
 // --- Types for Local State ---
 interface RecipeIngredient {
@@ -47,6 +46,17 @@ const AddItemModal = ({
     image: ''
   });
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, image: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = () => {
     if (!formData.name || !formData.costPerUnit || !formData.supplierId) return;
     
@@ -80,7 +90,7 @@ const AddItemModal = ({
         
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Item Name</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Item Name</label>
             <input 
               type="text" 
               value={formData.name}
@@ -93,7 +103,7 @@ const AddItemModal = ({
 
           <div className="grid grid-cols-2 gap-4">
              <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Category</label>
+                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Category</label>
                 <select 
                    value={formData.category}
                    onChange={(e) => setFormData({...formData, category: e.target.value})}
@@ -110,7 +120,7 @@ const AddItemModal = ({
                 </select>
              </div>
              <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Unit of Measure</label>
+                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Unit</label>
                 <input 
                   type="text" 
                   value={formData.unit}
@@ -122,22 +132,33 @@ const AddItemModal = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Image URL</label>
-            <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={formData.image} 
-                  onChange={(e) => setFormData({...formData, image: e.target.value})} 
-                  className="flex-1 bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none" 
-                  placeholder="https://..." 
-                />
-                {formData.image && <img src={formData.image} alt="Preview" className="w-12 h-12 rounded-lg object-cover bg-gray-100 dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700" />}
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Item Image</label>
+            <div className="relative group flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-neutral-700 rounded-xl h-32 bg-gray-50 dark:bg-neutral-900/50 hover:border-brand-red transition-all overflow-hidden cursor-pointer">
+              {formData.image ? (
+                <>
+                  <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                    <button onClick={(e) => { e.preventDefault(); setFormData(prev => ({...prev, image: ''})); }} className="p-2 bg-white rounded-full text-red-500 shadow-xl hover:scale-110 transition-transform"><Trash2 size={18}/></button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center text-gray-400 group-hover:text-brand-red">
+                  <Upload size={24} />
+                  <span className="text-xs font-bold mt-2">Click to upload image</span>
+                </div>
+              )}
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleFileChange}
+                className="absolute inset-0 opacity-0 cursor-pointer" 
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
              <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Cost Per Unit</label>
+                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Cost/Unit</label>
                 <input 
                   type="number" 
                   step="0.001"
@@ -148,7 +169,7 @@ const AddItemModal = ({
                 />
              </div>
              <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Min Stock Level</label>
+                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Min Level</label>
                 <input 
                   type="number" 
                   value={formData.minLevel}
@@ -160,13 +181,13 @@ const AddItemModal = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Primary Supplier</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Supplier</label>
             <div className="relative">
                <Truck size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-neutral-500" />
                <select 
                   value={formData.supplierId}
                   onChange={(e) => setFormData({...formData, supplierId: e.target.value})}
-                  className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg py-3 pl-10 pr-3 text-gray-900 dark:text-white focus:border-brand-red outline-none"
+                  className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg py-3 pl-10 pr-3 text-gray-900 dark:text-white focus:border-brand-red outline-none text-sm"
                >
                   <option value="">-- Select Supplier --</option>
                   {SUPPLIERS.map(s => (
@@ -205,7 +226,6 @@ const MenuManager = ({
   
   // Form State
   const [formName, setFormName] = useState('');
-  const [formNameAr, setFormNameAr] = useState('');
   const [formPrice, setFormPrice] = useState('');
   const [formCost, setFormCost] = useState('');
   const [formCategory, setFormCategory] = useState(CATEGORIES[0].id);
@@ -215,7 +235,6 @@ const MenuManager = ({
   const handleEdit = (item: MenuItem) => {
     setEditingItem(item);
     setFormName(item.name);
-    setFormNameAr(item.nameAr);
     setFormPrice(item.price.toString());
     setFormCost(item.cost.toString());
     setFormCategory(item.categoryId);
@@ -227,7 +246,6 @@ const MenuManager = ({
   const handleCreate = () => {
     setEditingItem(null);
     setFormName('');
-    setFormNameAr('');
     setFormPrice('');
     setFormCost('');
     setFormCategory(CATEGORIES[0].id);
@@ -236,13 +254,23 @@ const MenuManager = ({
     setShowModal(true);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const save = () => {
     if (!formName || !formPrice) return;
     
     const newItem: MenuItem = {
       id: editingItem ? editingItem.id : `menu-${Date.now()}`,
       name: formName,
-      nameAr: formNameAr,
       price: parseFloat(formPrice),
       cost: parseFloat(formCost) || 0,
       categoryId: formCategory,
@@ -297,7 +325,6 @@ const MenuManager = ({
                     )}
                     <div>
                         <div className="font-bold text-gray-900 dark:text-white">{item.name}</div>
-                        <div className="text-xs text-gray-500 dark:text-neutral-500">{item.nameAr}</div>
                     </div>
                   </div>
                 </td>
@@ -330,46 +357,58 @@ const MenuManager = ({
               <button onClick={() => setShowModal(false)}><X size={20} className="text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white" /></button>
             </div>
             
-            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Name (EN)</label>
-                  <input type="text" value={formName} onChange={e => setFormName(e.target.value)} className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Name (AR)</label>
-                  <input type="text" value={formNameAr} onChange={e => setFormNameAr(e.target.value)} className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none text-right" />
-                </div>
+            <div className="flex-1 overflow-y-auto space-y-5 pr-2 custom-scrollbar">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Dish Name</label>
+                <input type="text" value={formName} onChange={e => setFormName(e.target.value)} className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none" />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Category</label>
+                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Category</label>
                 <select value={formCategory} onChange={e => setFormCategory(e.target.value)} className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none">
                   {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Image URL</label>
-                <div className="flex gap-2">
-                    <input type="text" value={formImage} onChange={e => setFormImage(e.target.value)} className="flex-1 bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none" placeholder="https://..." />
-                    {formImage && <img src={formImage} alt="Preview" className="w-12 h-12 rounded-lg object-cover bg-gray-100 dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700" />}
+                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Dish Image</label>
+                <div className="relative group flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-neutral-700 rounded-xl h-40 bg-gray-50 dark:bg-neutral-900/50 hover:border-brand-red transition-all overflow-hidden cursor-pointer">
+                  {formImage ? (
+                    <>
+                      <img src={formImage} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                        <button onClick={(e) => { e.preventDefault(); setFormImage(''); }} className="p-3 bg-white rounded-full text-red-500 shadow-xl hover:scale-110 transition-transform"><Trash2 size={24}/></button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center text-gray-400 group-hover:text-brand-red">
+                      <Upload size={32} />
+                      <span className="text-sm font-bold mt-2">Click to upload dish image</span>
+                      <p className="text-[10px] uppercase mt-1 opacity-60">Aspect Ratio 1:1 Recommended</p>
+                    </div>
+                  )}
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleFileChange}
+                    className="absolute inset-0 opacity-0 cursor-pointer" 
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Price (KWD)</label>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Price (KWD)</label>
                   <input type="number" step="0.050" value={formPrice} onChange={e => setFormPrice(e.target.value)} className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none font-mono" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Cost (KWD)</label>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Cost (KWD)</label>
                   <input type="number" step="0.001" value={formCost} onChange={e => setFormCost(e.target.value)} className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none font-mono" />
                 </div>
               </div>
 
               <div className="pt-4 border-t border-gray-200 dark:border-neutral-800">
-                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-3">Linked Modifier Groups</label>
+                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-3 uppercase tracking-wider">Linked Modifier Groups</label>
                 <div className="flex flex-wrap gap-2">
                   {groups.map(grp => (
                     <button 
@@ -389,7 +428,7 @@ const MenuManager = ({
             </div>
 
             <div className="pt-6 mt-4 border-t border-gray-200 dark:border-neutral-800 flex justify-end gap-3">
-               <button onClick={() => setShowModal(false)} className="px-6 py-3 rounded-lg font-bold text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-neutral-800">Cancel</button>
+               <button onClick={() => setShowModal(false)} className="px-6 py-3 rounded-lg font-bold text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">Cancel</button>
                <button onClick={save} className="px-6 py-3 rounded-lg font-bold bg-brand-red text-white hover:bg-brand-redHover shadow-lg shadow-red-900/20">Save Dish</button>
             </div>
           </div>
@@ -515,23 +554,23 @@ const ModifierManager = ({
             
             <div className="flex-1 overflow-y-auto space-y-4 pr-2">
               <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Group Name</label>
+                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Group Name</label>
                 <input type="text" value={formName} onChange={e => setFormName(e.target.value)} className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none" placeholder="e.g. Pizza Toppings" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Min Selection</label>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Min Selection</label>
                   <input type="number" value={formMin} onChange={e => setFormMin(parseInt(e.target.value))} className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Max Selection</label>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Max Selection</label>
                   <input type="number" value={formMax} onChange={e => setFormMax(parseInt(e.target.value))} className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none" />
                 </div>
               </div>
 
               <div className="pt-4 border-t border-gray-200 dark:border-neutral-800">
-                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-3">Options</label>
+                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-3 uppercase tracking-wider">Options</label>
                 
                 <div className="flex gap-2 mb-3">
                    <input type="text" value={optName} onChange={e => setOptName(e.target.value)} className="flex-[2] bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-2 text-sm text-gray-900 dark:text-white focus:border-brand-red outline-none" placeholder="Option Name" />
@@ -555,7 +594,7 @@ const ModifierManager = ({
             </div>
 
             <div className="pt-6 mt-4 border-t border-gray-200 dark:border-neutral-800 flex justify-end gap-3">
-               <button onClick={() => setShowModal(false)} className="px-6 py-3 rounded-lg font-bold text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-neutral-800">Cancel</button>
+               <button onClick={() => setShowModal(false)} className="px-6 py-3 rounded-lg font-bold text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">Cancel</button>
                <button onClick={save} className="px-6 py-3 rounded-lg font-bold bg-brand-red text-white hover:bg-brand-redHover shadow-lg shadow-red-900/20">Save Group</button>
             </div>
           </div>
@@ -605,7 +644,7 @@ const LogWasteModal = ({
         
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Item</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Item</label>
             <select 
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}
@@ -622,7 +661,7 @@ const LogWasteModal = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Quantity</label>
+              <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Quantity</label>
               <div className="relative">
                 <input 
                   type="number" 
@@ -639,7 +678,7 @@ const LogWasteModal = ({
               </div>
             </div>
             <div>
-               <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Reason</label>
+               <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Reason</label>
                <select 
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
@@ -656,7 +695,7 @@ const LogWasteModal = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Recorded By</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Recorded By</label>
             <div className="relative">
                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-neutral-500" />
                <input 
@@ -734,7 +773,7 @@ const WasteLogView = ({ inventory, onNotify }: { inventory: InventoryItem[], onN
          <div className="bg-white dark:bg-brand-surface p-5 rounded-xl border border-gray-200 dark:border-neutral-800 shadow-sm">
             <div className="flex justify-between items-start mb-2">
                <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg text-red-600 dark:text-red-500"><TrendingUp size={20} /></div>
-               <span className="text-xs font-bold text-gray-500 dark:text-neutral-500 uppercase">MTD</span>
+               <span className="text-xs font-bold text-gray-500 dark:text-neutral-500 uppercase tracking-widest">MTD</span>
             </div>
             <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{totalWasteValue.toFixed(3)} KWD</div>
             <div className="text-xs text-gray-500 dark:text-neutral-400">Total Waste Value</div>
@@ -758,7 +797,7 @@ const WasteLogView = ({ inventory, onNotify }: { inventory: InventoryItem[], onN
       {/* Main Content */}
       <div className="bg-white dark:bg-brand-surface rounded-xl border border-gray-200 dark:border-neutral-800 overflow-hidden flex flex-col h-[500px] shadow-sm">
          <div className="p-4 border-b border-gray-200 dark:border-neutral-800 bg-gray-100 dark:bg-neutral-900 flex justify-between items-center">
-            <h3 className="font-bold text-gray-900 dark:text-white">Waste Log History</h3>
+            <h3 className="font-bold text-gray-900 dark:text-white uppercase tracking-wider text-sm">Waste Log History</h3>
             <button 
               onClick={() => setShowLogModal(true)}
               className="bg-brand-red hover:bg-brand-redHover text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold shadow-lg shadow-red-900/20"
@@ -848,7 +887,7 @@ const ReceiveStockModal = ({
         
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Select Item</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Select Item</label>
             <select 
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}
@@ -864,7 +903,7 @@ const ReceiveStockModal = ({
           </div>
           
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Quantity Received</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Quantity Received</label>
             <div className="relative">
               <input 
                 type="number" 
@@ -925,11 +964,11 @@ const TransferModal = ({
         
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Item to Transfer</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Item to Transfer</label>
             <select 
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none"
+              className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none text-sm"
             >
               <option value="">-- Choose Item --</option>
               {inventory.map(item => (
@@ -942,13 +981,13 @@ const TransferModal = ({
 
           <div className="grid grid-cols-2 gap-4">
              <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">From Location</label>
+                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">From Location</label>
                 <div className="w-full bg-gray-100 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg p-3 text-gray-500 dark:text-neutral-400 text-sm cursor-not-allowed">
                   Main Storage
                 </div>
              </div>
              <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">To Location</label>
+                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">To Location</label>
                 <select 
                   value={toLocation}
                   onChange={(e) => setToLocation(e.target.value)}
@@ -962,14 +1001,14 @@ const TransferModal = ({
           </div>
           
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Quantity</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Quantity</label>
             <div className="relative">
               <input 
                 type="number" 
                 value={qty}
                 onChange={(e) => setQty(e.target.value)}
                 placeholder="0.00"
-                className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none font-mono"
+                className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none font-mono text-sm"
               />
               {selectedId && (
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-neutral-500 text-sm font-bold">
@@ -1008,19 +1047,19 @@ const AdjustStockModal = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-brand-surface w-full max-w-sm rounded-xl border border-gray-200 dark:border-neutral-700 shadow-2xl p-6">
+      <div className="bg-white dark:bg-brand-surface w-full max-sm rounded-xl border border-gray-200 dark:border-neutral-700 shadow-2xl p-6">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Adjust Stock</h3>
         <p className="text-gray-500 dark:text-neutral-400 text-sm mb-6">{item.name} • Current: {item.currentStock} {item.unit}</p>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Adjustment Amount (+/-)</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Adjustment Amount (+/-)</label>
             <div className="flex gap-2">
                <input 
                  type="number" 
                  value={adjustAmount} 
                  onChange={(e) => setAdjustAmount(parseFloat(e.target.value) || 0)}
-                 className="flex-1 bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none"
+                 className="flex-1 bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none font-mono"
                  autoFocus
                />
                <div className="bg-gray-100 dark:bg-neutral-800 flex items-center px-4 rounded-lg text-gray-600 dark:text-neutral-400 text-sm font-bold border border-gray-200 dark:border-neutral-700">
@@ -1030,11 +1069,11 @@ const AdjustStockModal = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Reason</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Reason</label>
             <select 
               value={reason} 
               onChange={(e) => setReason(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none"
+              className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none text-sm"
             >
               <option>Purchase / Delivery</option>
               <option>Waste / Spoilage</option>
@@ -1044,14 +1083,14 @@ const AdjustStockModal = ({
           </div>
 
           <div className="bg-gray-100 dark:bg-neutral-900/50 p-3 rounded-lg flex justify-between items-center border border-gray-200 dark:border-neutral-800">
-             <span className="text-sm text-gray-600 dark:text-neutral-400">New Stock Level</span>
+             <span className="text-sm text-gray-600 dark:text-neutral-400 font-medium">New Stock Level</span>
              <span className={`font-mono font-bold ${newStock < 0 ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>{newStock} {item.unit}</span>
           </div>
         </div>
 
         <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 py-3 bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-neutral-300 rounded-lg font-bold hover:bg-gray-200 dark:hover:bg-neutral-700">Cancel</button>
-          <button onClick={() => onSave(item.id, newStock)} className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-black rounded-lg font-bold hover:bg-black dark:hover:bg-neutral-200">Confirm</button>
+          <button onClick={onClose} className="flex-1 py-3 bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-neutral-300 rounded-lg font-bold hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors">Cancel</button>
+          <button onClick={() => onSave(item.id, newStock)} className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-black rounded-lg font-bold hover:bg-black dark:hover:bg-neutral-200 shadow-lg">Confirm</button>
         </div>
       </div>
     </div>
@@ -1103,11 +1142,11 @@ const StockTable: React.FC<{ items: InventoryItem[], onAdjust: (item: InventoryI
               <td className="p-4 text-right font-mono text-gray-900 dark:text-white">{(item.currentStock * item.costPerUnit).toFixed(3)}</td>
               <td className="p-4 text-center">
                 {isLow ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-500 text-xs border border-red-200 dark:border-red-900">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-500 text-[10px] font-bold uppercase border border-red-200 dark:border-red-900 tracking-wider">
                     <AlertTriangle size={10} /> Low
                   </span>
                 ) : (
-                  <span className="inline-block px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-500 text-xs border border-green-200 dark:border-green-900">
+                  <span className="inline-block px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-500 text-[10px] font-bold uppercase border border-green-200 dark:border-green-900 tracking-wider">
                     OK
                   </span>
                 )}
@@ -1183,10 +1222,10 @@ const RecipeBuilder: React.FC<{ inventory: InventoryItem[], onNotify: (msg: stri
   const foodCostPercent = selectedItem ? (totalCost / selectedItem.price) * 100 : 0;
   
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-140px)]">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-140px)] animate-in fade-in duration-500">
       {/* Sidebar: Menu Selector */}
       <div className="lg:col-span-3 bg-white dark:bg-brand-surface rounded-xl border border-gray-200 dark:border-neutral-800 p-4 flex flex-col h-full overflow-hidden shadow-sm">
-        <h3 className="text-gray-900 dark:text-white font-bold mb-4">Select Dish</h3>
+        <h3 className="text-gray-900 dark:text-white font-bold mb-4 uppercase tracking-widest text-xs">Select Dish</h3>
         <div className="relative mb-4">
            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-neutral-500" />
            <input 
@@ -1197,7 +1236,7 @@ const RecipeBuilder: React.FC<{ inventory: InventoryItem[], onNotify: (msg: stri
              className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg py-2 pl-9 pr-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-neutral-500"
            />
         </div>
-        <div className="flex-1 overflow-y-auto space-y-1">
+        <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar">
           {MENU_ITEMS
             .filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()))
             .map(item => (
@@ -1214,7 +1253,7 @@ const RecipeBuilder: React.FC<{ inventory: InventoryItem[], onNotify: (msg: stri
                  )}
                  <div>
                     <div className={`text-sm font-medium ${selectedItemId === item.id ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-neutral-400 group-hover:text-black dark:group-hover:text-white'}`}>{item.name}</div>
-                    <div className="text-xs text-gray-500 dark:text-neutral-600">{item.price.toFixed(3)} KWD</div>
+                    <div className="text-xs text-gray-500 dark:text-neutral-600 font-mono">{item.price.toFixed(3)} KWD</div>
                  </div>
               </div>
               {selectedItemId === item.id && <ChevronRight size={14} className="text-brand-red" />}
@@ -1232,19 +1271,19 @@ const RecipeBuilder: React.FC<{ inventory: InventoryItem[], onNotify: (msg: stri
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
                   {selectedItem.name} 
-                  <span className="text-sm font-normal text-gray-600 dark:text-neutral-500 bg-gray-200 dark:bg-neutral-800 px-2 py-1 rounded">{MENU_ITEMS.find(m => m.id === selectedItemId)?.price.toFixed(3)} KWD</span>
+                  <span className="text-sm font-normal text-gray-600 dark:text-neutral-500 bg-gray-200 dark:bg-neutral-800 px-2 py-1 rounded font-mono">{MENU_ITEMS.find(m => m.id === selectedItemId)?.price.toFixed(3)} KWD</span>
                 </h2>
-                <p className="text-gray-500 dark:text-neutral-400 text-sm mt-1">Configure recipe ingredients to calculate Food Cost.</p>
+                <p className="text-gray-500 dark:text-neutral-400 text-sm mt-1 font-medium">Configure recipe ingredients to calculate Food Cost.</p>
               </div>
               
               <div className="flex gap-4">
                  <div className="text-right">
-                    <div className="text-xs text-gray-500 dark:text-neutral-500 uppercase font-bold">Total Cost</div>
+                    <div className="text-xs text-gray-500 dark:text-neutral-500 uppercase font-bold tracking-widest">Total Cost</div>
                     <div className="text-xl font-bold font-mono text-gray-900 dark:text-white">{totalCost.toFixed(3)}</div>
                  </div>
                  <div className="w-px bg-gray-300 dark:bg-neutral-700 h-10"></div>
                  <div className="text-right">
-                    <div className="text-xs text-gray-500 dark:text-neutral-500 uppercase font-bold">Food Cost %</div>
+                    <div className="text-xs text-gray-500 dark:text-neutral-500 uppercase font-bold tracking-widest">Food Cost %</div>
                     <div className={`text-xl font-bold font-mono ${foodCostPercent > 35 ? 'text-red-500' : foodCostPercent > 28 ? 'text-yellow-500' : 'text-green-500'}`}>
                       {foodCostPercent.toFixed(1)}%
                     </div>
@@ -1254,9 +1293,9 @@ const RecipeBuilder: React.FC<{ inventory: InventoryItem[], onNotify: (msg: stri
 
             {/* Ingredients Table */}
             <div className="flex-1 overflow-y-auto p-6">
-              <div className="bg-gray-50 dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden">
+              <div className="bg-gray-50 dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden shadow-inner">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-neutral-400">
+                  <thead className="bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-neutral-400 font-bold uppercase tracking-tighter text-[10px]">
                     <tr>
                       <th className="p-3 text-left">Ingredient</th>
                       <th className="p-3 text-right">Unit Cost</th>
@@ -1282,8 +1321,8 @@ const RecipeBuilder: React.FC<{ inventory: InventoryItem[], onNotify: (msg: stri
                       const netCost = (invItem.costPerUnit * ing.amount) / (yieldFactor || 1);
 
                       return (
-                        <tr key={ing.id} className="hover:bg-gray-100 dark:hover:bg-neutral-800/30">
-                          <td className="p-3 font-medium text-gray-900 dark:text-white">
+                        <tr key={ing.id} className="hover:bg-gray-100 dark:hover:bg-neutral-800/30 group">
+                          <td className="p-3 font-bold text-gray-900 dark:text-white">
                              {invItem.name}
                           </td>
                           <td className="p-3 text-right font-mono text-gray-500 dark:text-neutral-500">
@@ -1297,20 +1336,20 @@ const RecipeBuilder: React.FC<{ inventory: InventoryItem[], onNotify: (msg: stri
                                   step="0.01"
                                   value={ing.amount}
                                   onChange={(e) => updateIngredient(ing.id, 'amount', parseFloat(e.target.value) || 0)}
-                                  className="w-20 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 rounded p-1 text-center text-gray-900 dark:text-white focus:border-brand-red outline-none"
+                                  className="w-20 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 rounded p-1 text-center text-gray-900 dark:text-white focus:border-brand-red outline-none font-mono font-bold"
                                 />
-                                <span className="text-xs text-gray-500 dark:text-neutral-500 w-8">{invItem.unit}</span>
+                                <span className="text-[10px] font-bold text-gray-500 dark:text-neutral-500 w-8 uppercase">{invItem.unit}</span>
                              </div>
                           </td>
                           <td className="p-3">
                              <div className="flex items-center justify-center gap-1">
                                 <input 
                                   type="number" 
-                                  min="0"
+                                  min="0" 
                                   max="100"
                                   value={ing.yieldLoss}
                                   onChange={(e) => updateIngredient(ing.id, 'yieldLoss', parseFloat(e.target.value) || 0)}
-                                  className={`w-16 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 rounded p-1 text-center focus:border-brand-red outline-none ${ing.yieldLoss > 0 ? 'text-red-500 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}
+                                  className={`w-16 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 rounded p-1 text-center focus:border-brand-red outline-none font-mono ${ing.yieldLoss > 0 ? 'text-red-500 dark:text-red-400 font-bold' : 'text-gray-900 dark:text-white'}`}
                                 />
                                 <span className="text-xs text-gray-500 dark:text-neutral-500">%</span>
                              </div>
@@ -1319,7 +1358,7 @@ const RecipeBuilder: React.FC<{ inventory: InventoryItem[], onNotify: (msg: stri
                              {netCost.toFixed(3)}
                           </td>
                           <td className="p-3 text-center">
-                             <button onClick={() => removeIngredient(ing.id)} className="text-gray-400 dark:text-neutral-600 hover:text-red-500 transition-colors">
+                             <button onClick={() => removeIngredient(ing.id)} className="text-gray-400 dark:text-neutral-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
                                <Trash2 size={16} />
                              </button>
                           </td>
@@ -1327,7 +1366,7 @@ const RecipeBuilder: React.FC<{ inventory: InventoryItem[], onNotify: (msg: stri
                       );
                     })}
                     <tr className="bg-gray-100 dark:bg-neutral-800/30 font-bold border-t border-gray-200 dark:border-neutral-700">
-                      <td colSpan={4} className="p-4 text-right text-gray-900 dark:text-white">Total Recipe Cost</td>
+                      <td colSpan={4} className="p-4 text-right text-gray-900 dark:text-white font-bold uppercase tracking-widest text-xs">Total Net Recipe Cost</td>
                       <td className="p-4 text-right text-brand-red font-mono text-lg">{totalCost.toFixed(3)}</td>
                       <td></td>
                     </tr>
@@ -1337,7 +1376,7 @@ const RecipeBuilder: React.FC<{ inventory: InventoryItem[], onNotify: (msg: stri
               
               <button 
                 onClick={() => setIsAddingIngredient(true)}
-                className="mt-4 w-full py-3 border-2 border-dashed border-gray-300 dark:border-neutral-700 rounded-xl text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white hover:border-gray-400 dark:hover:border-neutral-500 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-all flex items-center justify-center gap-2 font-bold"
+                className="mt-4 w-full py-4 border-2 border-dashed border-gray-300 dark:border-neutral-700 rounded-xl text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white hover:border-gray-400 dark:hover:border-neutral-500 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-all flex items-center justify-center gap-2 font-bold"
               >
                 <Plus size={18} /> Add Ingredient
               </button>
@@ -1350,24 +1389,24 @@ const RecipeBuilder: React.FC<{ inventory: InventoryItem[], onNotify: (msg: stri
                  onClick={handleSave}
                  className="px-6 py-3 rounded-lg font-bold bg-brand-red text-white hover:bg-brand-redHover flex items-center gap-2 shadow-lg shadow-red-900/20"
                >
-                 <Save size={18} /> Save Recipe
+                 <Save size={18} /> Save Recipe Formulation
                </button>
             </div>
 
             {/* Ingredient Selector Modal Overlay */}
             {isAddingIngredient && (
-               <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-10 flex flex-col animate-in fade-in duration-200">
+               <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col animate-in fade-in duration-200">
                   <div className="p-4 border-b border-gray-200 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-900">
-                     <h3 className="font-bold text-gray-900 dark:text-white">Add Ingredient</h3>
+                     <h3 className="font-bold text-gray-900 dark:text-white uppercase tracking-widest text-xs">Choose Ingredient</h3>
                      <button onClick={() => setIsAddingIngredient(false)} className="text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white"><X size={20}/></button>
                   </div>
                   <div className="p-4 bg-gray-50 dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800">
                      <div className="relative">
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-neutral-500" />
-                        <input type="text" placeholder="Search inventory..." className="w-full bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 rounded-lg py-2 pl-9 pr-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-red" autoFocus />
+                        <input type="text" placeholder="Search inventory catalog..." className="w-full bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 rounded-lg py-2 pl-9 pr-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-red" autoFocus />
                      </div>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-4 bg-gray-100/50 dark:bg-black/50">
+                  <div className="flex-1 overflow-y-auto p-4 bg-gray-100/50 dark:bg-black/50 custom-scrollbar">
                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         {inventory.map(item => (
                            <button 
@@ -1382,8 +1421,8 @@ const RecipeBuilder: React.FC<{ inventory: InventoryItem[], onNotify: (msg: stri
                                     <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 flex items-center justify-center text-gray-400 dark:text-neutral-500"><ImageIcon size={18}/></div>
                                  )}
                                  <div>
-                                    <div className="font-bold text-gray-900 dark:text-white group-hover:text-brand-red">{item.name}</div>
-                                    <div className="text-xs text-gray-500 dark:text-neutral-500">{item.currentStock} {item.unit} available • {item.costPerUnit.toFixed(3)} KWD</div>
+                                    <div className="font-bold text-gray-900 dark:text-white group-hover:text-brand-red text-sm">{item.name}</div>
+                                    <div className="text-[10px] text-gray-500 dark:text-neutral-500 uppercase tracking-tight">{item.currentStock} {item.unit} in stock • {item.costPerUnit.toFixed(3)} KWD</div>
                                  </div>
                               </div>
                            </button>
@@ -1415,25 +1454,25 @@ export const Inventory: React.FC<InventoryProps> = ({ onNotify }) => {
   const handleAdjustStock = (id: string, newStock: number) => {
     setInventoryItems(prev => prev.map(i => i.id === id ? { ...i, currentStock: newStock } : i));
     setAdjustItem(null);
-    onNotify('Stock adjustment saved successfully.', 'success');
+    onNotify('Stock level synchronized successfully.', 'success');
   };
 
   const handleReceiveStock = (itemId: string, qty: number) => {
     setInventoryItems(prev => prev.map(i => i.id === itemId ? { ...i, currentStock: i.currentStock + qty } : i));
     setShowReceiveModal(false);
-    onNotify('Stock received successfully.', 'success');
+    onNotify('Stock intake recorded successfully.', 'success');
   };
 
   const handleTransferStock = (itemId: string, qty: number, toLocation: string) => {
     setInventoryItems(prev => prev.map(i => i.id === itemId ? { ...i, currentStock: Math.max(0, i.currentStock - qty) } : i));
     setShowTransferModal(false);
-    onNotify(`Stock transferred to ${toLocation} successfully.`, 'success');
+    onNotify(`Internal stock transfer to ${toLocation} complete.`, 'success');
   };
 
   const handleAddItem = (item: InventoryItem) => {
     setInventoryItems(prev => [...prev, item]);
     setShowAddItemModal(false);
-    onNotify('New item added to inventory master.', 'success');
+    onNotify('New SKU added to inventory master.', 'success');
   };
 
   const handleSaveMenuItem = (item: MenuItem) => {
@@ -1490,19 +1529,19 @@ export const Inventory: React.FC<InventoryProps> = ({ onNotify }) => {
         />
       )}
 
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Back of House</h1>
-        <div className="flex bg-white dark:bg-neutral-900 p-1 rounded-lg border border-gray-200 dark:border-neutral-800">
-          <button onClick={() => setTab('STOCK')} className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${tab === 'STOCK' ? 'bg-gray-100 dark:bg-neutral-800 text-black dark:text-white shadow-sm' : 'text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white uppercase tracking-wider">Back of House Operations</h1>
+        <div className="flex bg-white dark:bg-neutral-900 p-1 rounded-lg border border-gray-200 dark:border-neutral-800 shadow-sm">
+          <button onClick={() => setTab('STOCK')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${tab === 'STOCK' ? 'bg-gray-100 dark:bg-neutral-800 text-black dark:text-white shadow-sm' : 'text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}>
             <Package size={16} /> Inventory
           </button>
-          <button onClick={() => setTab('RECIPES')} className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${tab === 'RECIPES' ? 'bg-gray-100 dark:bg-neutral-800 text-black dark:text-white shadow-sm' : 'text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}>
+          <button onClick={() => setTab('RECIPES')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${tab === 'RECIPES' ? 'bg-gray-100 dark:bg-neutral-800 text-black dark:text-white shadow-sm' : 'text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}>
             <FileText size={16} /> Recipes
           </button>
-          <button onClick={() => setTab('MENU')} className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${tab === 'MENU' ? 'bg-gray-100 dark:bg-neutral-800 text-black dark:text-white shadow-sm' : 'text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}>
+          <button onClick={() => setTab('MENU')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${tab === 'MENU' ? 'bg-gray-100 dark:bg-neutral-800 text-black dark:text-white shadow-sm' : 'text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}>
             <List size={16} /> Menu
           </button>
-          <button onClick={() => setTab('WASTE')} className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${tab === 'WASTE' ? 'bg-gray-100 dark:bg-neutral-800 text-black dark:text-white shadow-sm' : 'text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}>
+          <button onClick={() => setTab('WASTE')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${tab === 'WASTE' ? 'bg-gray-100 dark:bg-neutral-800 text-black dark:text-white shadow-sm' : 'text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}>
             <Trash2 size={16} /> Waste
           </button>
         </div>
@@ -1511,24 +1550,24 @@ export const Inventory: React.FC<InventoryProps> = ({ onNotify }) => {
       <div className="min-h-[500px]">
         {tab === 'STOCK' && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-             <div className="flex gap-4 mb-4">
+             <div className="flex flex-wrap gap-4 mb-4">
                <button 
                 onClick={() => setShowAddItemModal(true)}
-                className="bg-brand-red hover:bg-brand-redHover text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold shadow-lg shadow-red-900/20"
+                className="bg-brand-red hover:bg-brand-redHover text-white px-6 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold shadow-lg shadow-red-900/20 active:scale-95 transition-all"
                >
-                 <Plus size={16} /> Add Item
+                 <Plus size={18} /> New SKU
                </button>
                <button 
                 onClick={() => setShowReceiveModal(true)}
-                className="bg-white dark:bg-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-700 text-gray-700 dark:text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium border border-gray-300 dark:border-neutral-700"
+                className="bg-white dark:bg-neutral-900 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-700 dark:text-white px-6 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold border border-gray-300 dark:border-neutral-700 shadow-sm active:scale-95 transition-all"
                >
-                 <Package size={16} /> Receive Stock
+                 <Package size={18} /> Intake Stock
                </button>
                <button 
                 onClick={() => setShowTransferModal(true)}
-                className="bg-white dark:bg-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-700 text-gray-700 dark:text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium border border-gray-300 dark:border-neutral-700"
+                className="bg-white dark:bg-neutral-900 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-700 dark:text-white px-6 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold border border-gray-300 dark:border-neutral-700 shadow-sm active:scale-95 transition-all"
                >
-                 <ArrowRightLeft size={16} /> Transfer
+                 <ArrowRightLeft size={18} /> Transfer
                </button>
              </div>
              <StockTable items={inventoryItems} onAdjust={setAdjustItem} />
@@ -1537,9 +1576,9 @@ export const Inventory: React.FC<InventoryProps> = ({ onNotify }) => {
         
         {tab === 'MENU' && (
            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="flex gap-2 mb-4">
-                 <button onClick={() => setMenuSubTab('ITEMS')} className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${menuSubTab === 'ITEMS' ? 'bg-white dark:bg-brand-surface text-black dark:text-white border-gray-300 dark:border-neutral-700 shadow-sm' : 'text-gray-500 dark:text-neutral-500 border-transparent hover:text-black dark:hover:text-white'}`}>Menu Items</button>
-                 <button onClick={() => setMenuSubTab('MODIFIERS')} className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${menuSubTab === 'MODIFIERS' ? 'bg-white dark:bg-brand-surface text-black dark:text-white border-gray-300 dark:border-neutral-700 shadow-sm' : 'text-gray-500 dark:text-neutral-500 border-transparent hover:text-black dark:hover:text-white'}`}>Modifier Groups</button>
+              <div className="flex bg-white dark:bg-neutral-900 p-1 rounded-lg border border-gray-200 dark:border-neutral-800 w-fit mb-4">
+                 <button onClick={() => setMenuSubTab('ITEMS')} className={`px-5 py-2 rounded-md text-sm font-bold transition-all ${menuSubTab === 'ITEMS' ? 'bg-gray-100 dark:bg-neutral-800 text-black dark:text-white shadow-sm' : 'text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}>Dishes & Items</button>
+                 <button onClick={() => setMenuSubTab('MODIFIERS')} className={`px-5 py-2 rounded-md text-sm font-bold transition-all ${menuSubTab === 'MODIFIERS' ? 'bg-gray-100 dark:bg-neutral-800 text-black dark:text-white shadow-sm' : 'text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}>Modifier Config</button>
               </div>
               
               {menuSubTab === 'ITEMS' ? (

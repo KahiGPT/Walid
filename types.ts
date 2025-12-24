@@ -12,9 +12,13 @@ export enum Module {
   MARKETING = 'MARKETING',
   ACCOUNTING = 'ACCOUNTING',
   SETTINGS = 'SETTINGS',
-  CALL_CENTER = 'CALL_CENTER'
+  CALL_CENTER = 'CALL_CENTER',
+  MESSAGES = 'MESSAGES'
 }
 
+/**
+ * Branch representing a physical or virtual location.
+ */
 export interface Branch {
   id: string;
   name: string;
@@ -23,43 +27,26 @@ export interface Branch {
   taxRate: number;
 }
 
-export enum OrderType {
-  DINE_IN = 'Dine In',
-  TAKEAWAY = 'Takeaway',
-  DELIVERY = 'Delivery'
-}
-
-export enum OrderStatus {
-  PENDING = 'Pending',
-  KITCHEN = 'Kitchen',
-  READY = 'Ready', // Ready for Pickup
-  OUT_FOR_DELIVERY = 'Out for Delivery',
-  COMPLETED = 'Completed', // Delivered/Closed
-  VOIDED = 'Voided'
-}
-
-export enum TableStatus {
-  AVAILABLE = 'AVAILABLE',
-  OCCUPIED = 'OCCUPIED',
-  RESERVED = 'RESERVED',
-  BILL_PRINTED = 'BILL_PRINTED'
-}
-
-export interface Table {
+/**
+ * Menu category for organizing dishes.
+ */
+export interface Category {
   id: string;
   name: string;
-  status: TableStatus;
-  seats: number;
-  currentOrderId?: string;
-  zone: 'Indoor' | 'Terrace' | 'VIP';
 }
 
+/**
+ * Individual modifier option (e.g., "Extra Cheese").
+ */
 export interface ModifierOption {
   id: string;
   name: string;
   price: number;
 }
 
+/**
+ * Group of modifiers (e.g., "Toppings").
+ */
 export interface ModifierGroup {
   id: string;
   name: string;
@@ -68,49 +55,53 @@ export interface ModifierGroup {
   options: ModifierOption[];
 }
 
+/**
+ * Menu item representing a dish or beverage.
+ */
 export interface MenuItem {
   id: string;
   name: string;
-  nameAr: string;
+  // Added nameAr property to support Arabic menu item names
+  nameAr?: string;
   price: number;
   categoryId: string;
-  cost: number; // Theoretical cost
-  image?: string;
+  cost: number;
   modifierGroupIds?: string[];
+  image?: string;
 }
 
-export interface Category {
-  id: string;
-  name: string;
-  nameAr: string;
-}
-
+/**
+ * Item within a customer's cart or active order.
+ */
 export interface CartItem extends MenuItem {
   cartId: string;
   quantity: number;
   modifiers: ModifierOption[];
   notes?: string;
+  fired?: boolean; // Track if item was sent to KDS
 }
 
-export type DeliveryPlatform = 'OWN_FLEET' | 'TALABAT' | 'DELIVEROO' | 'CAREEM';
-
-export interface DeliveryInfo {
-  customerName: string;
-  phone: string;
-  address: string;
-  platform: DeliveryPlatform;
-  driverId?: string;
-  driverName?: string;
-  estimatedTime?: number; // minutes
-  orderIdRef?: string; // External Platform ID
+export enum OrderStatus {
+  PENDING = 'PENDING',
+  KITCHEN = 'KITCHEN',
+  READY = 'READY',
+  OUT_FOR_DELIVERY = 'OUT_FOR_DELIVERY',
+  COMPLETED = 'COMPLETED',
+  OPEN = 'OPEN',
+  CLOSED = 'CLOSED'
 }
 
-export interface Payment {
-  method: 'CASH' | 'CARD' | 'LOYALTY';
-  amount: number;
-  reference?: string;
+export enum OrderType {
+  DINE_IN = 'DINE_IN',
+  TAKEAWAY = 'TAKEAWAY',
+  DELIVERY = 'DELIVERY'
 }
 
+export type DeliveryPlatform = 'OWN_FLEET' | 'TALABAT' | 'DELIVEROO' | 'CAREEM' | 'JAHEZ' | 'KEETA';
+
+/**
+ * Full order object.
+ */
 export interface Order {
   id: string;
   type: OrderType;
@@ -118,12 +109,32 @@ export interface Order {
   status: OrderStatus;
   items: CartItem[];
   total: number;
-  payments?: Payment[]; // Track split payments
   timestamp: Date;
   staffName: string;
-  deliveryInfo?: DeliveryInfo;
+  deliveryInfo?: {
+    customerName: string;
+    phone: string;
+    address: string;
+    platform: DeliveryPlatform;
+    driverId?: string;
+    driverName?: string;
+    estimatedTime?: number;
+    orderIdRef?: string;
+  };
+  payments?: Payment[];
 }
 
+/**
+ * Payment transaction record.
+ */
+export interface Payment {
+  method: 'CASH' | 'CARD' | 'LOYALTY';
+  amount: number;
+}
+
+/**
+ * Raw material or ingredient in stock.
+ */
 export interface InventoryItem {
   id: string;
   name: string;
@@ -133,51 +144,72 @@ export interface InventoryItem {
   costPerUnit: number;
   category: string;
   supplier: string;
-  supplierId?: string;
+  supplierId: string;
   image?: string;
 }
 
+/**
+ * Component of a recipe.
+ */
+export interface RecipeIngredient {
+  inventoryItemId: string;
+  amount: number;
+  yieldLoss: number;
+}
+
+/**
+ * Formulation for a menu item.
+ */
 export interface Recipe {
   id: string;
   menuItemId: string;
-  ingredients: {
-    inventoryItemId: string;
-    amount: number;
-    yieldLoss: number; // % lost during prep
-  }[];
+  ingredients: RecipeIngredient[];
   totalCost: number;
   foodCostPercentage: number;
 }
 
-export interface KPI {
-  label: string;
-  value: string;
-  trend: number; // Positive or negative percentage
-  isCurrency?: boolean;
-}
+export type AICategory = 'COST_CONTROL' | 'MENU_PERFORMANCE' | 'STAFF' | 'INVENTORY';
 
-// AI Engine Types
-export type AICategory = 'COST_CONTROL' | 'MENU_PERFORMANCE' | 'SALES' | 'INVENTORY' | 'STAFF' | 'DELIVERY';
-export type AIRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
-
+/**
+ * AI-generated business recommendation.
+ */
 export interface AIRecommendation {
   id: string;
   category: AICategory;
   title: string;
   problem: string;
-  evidence: string; // The data backing the claim
+  evidence: string;
   action: string;
-  impact: string; // Expected KPI improvement
-  risk: AIRiskLevel;
+  impact: string;
+  risk: 'LOW' | 'MEDIUM' | 'HIGH';
 }
 
-// Purchasing Types
-export type POStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'SENT' | 'RECEIVED' | 'CANCELLED';
+export enum TableStatus {
+  AVAILABLE = 'AVAILABLE',
+  OCCUPIED = 'OCCUPIED',
+  BILL_PRINTED = 'BILL_PRINTED',
+  RESERVED = 'RESERVED'
+}
 
+/**
+ * Dining table definition.
+ */
+export interface Table {
+  id: string;
+  name: string;
+  status: TableStatus;
+  seats: number;
+  currentOrderId?: string;
+  zone: string;
+}
+
+/**
+ * Vendor for inventory items.
+ */
 export interface Supplier {
   id: string;
   name: string;
-  rating: number; // 1-5
+  rating: number;
   contactPhone: string;
   email: string;
   category: string;
@@ -185,6 +217,11 @@ export interface Supplier {
   leadTimeDays: number;
 }
 
+export type POStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'SENT' | 'RECEIVED' | 'CANCELLED';
+
+/**
+ * Item within a purchase order.
+ */
 export interface POItem {
   inventoryItemId: string;
   name: string;
@@ -194,6 +231,9 @@ export interface POItem {
   totalCost: number;
 }
 
+/**
+ * Document for purchasing inventory from a supplier.
+ */
 export interface PurchaseOrder {
   id: string;
   supplierId: string;
@@ -206,52 +246,61 @@ export interface PurchaseOrder {
   requestedBy: string;
 }
 
-// HR Types
-export type StaffRole = 'MANAGER' | 'CHEF' | 'WAITER' | 'DRIVER' | 'CASHIER';
-export type StaffStatus = 'ACTIVE' | 'ON_LEAVE' | 'TERMINATED';
-
+/**
+ * Restaurant employee record.
+ */
 export interface StaffMember {
   id: string;
   fullName: string;
-  role: StaffRole;
-  status: StaffStatus;
+  role: string;
+  status: 'ACTIVE' | 'ON_LEAVE' | 'TERMINATED';
   phone: string;
   hourlyRate: number;
   joinDate: Date;
-  performanceScore: number; // 0-100
+  performanceScore: number;
 }
 
+/**
+ * Scheduled work shift.
+ */
 export interface Shift {
   id: string;
   staffId: string;
   staffName: string;
   date: Date;
-  startTime: string; // "09:00"
-  endTime: string; // "17:00"
-  role: StaffRole;
+  startTime: string;
+  endTime: string;
+  role: string;
 }
 
+/**
+ * Clock-in/out record.
+ */
 export interface AttendanceRecord {
   id: string;
   staffId: string;
   staffName: string;
   date: Date;
-  checkIn?: string;
+  checkIn: string;
   checkOut?: string;
   status: 'PRESENT' | 'LATE' | 'ABSENT';
 }
 
-// Dispatcher Types
+/**
+ * Delivery personnel.
+ */
 export interface Driver {
   id: string;
   name: string;
   status: 'AVAILABLE' | 'BUSY' | 'OFFLINE';
-  currentOrderId?: string;
   batteryLevel: number;
-  vehicleType: 'BIKE' | 'CAR' | 'SCOOTER';
+  vehicleType: 'BIKE' | 'CAR';
+  currentOrderId?: string;
 }
 
-// Marketing Types
+/**
+ * Customer profile for loyalty and CRM.
+ */
 export interface Customer {
   id: string;
   name: string;
@@ -261,27 +310,29 @@ export interface Customer {
   visitCount: number;
   lastVisit: Date;
   loyaltyPoints: number;
-  tags: string[]; // e.g., 'VIP', 'Big Spender', 'Churn Risk'
+  tags: string[];
 }
 
-export type CampaignType = 'SMS' | 'EMAIL' | 'PUSH';
-export type CampaignStatus = 'DRAFT' | 'SCHEDULED' | 'ACTIVE' | 'COMPLETED';
-
+/**
+ * Marketing outreach campaign.
+ */
 export interface Campaign {
   id: string;
   name: string;
-  type: CampaignType;
-  status: CampaignStatus;
+  type: 'SMS' | 'EMAIL' | 'PUSH';
+  status: 'DRAFT' | 'SCHEDULED' | 'ACTIVE' | 'COMPLETED';
   sentCount: number;
-  engagementRate: number; // Open rate or Click rate (%)
+  engagementRate: number;
   revenueGenerated: number;
   startDate: Date;
 }
 
-// Accounting Types
-export type ExpenseCategory = 'RENT' | 'UTILITIES' | 'MAINTENANCE' | 'MARKETING' | 'SOFTWARE' | 'OTHER';
+export type ExpenseCategory = 'MAINTENANCE' | 'RENT' | 'SOFTWARE' | 'MARKETING' | 'UTILITIES' | 'OTHER';
 export type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'CREDIT_CARD';
 
+/**
+ * Operational expense record.
+ */
 export interface Expense {
   id: string;
   date: Date;
@@ -290,9 +341,12 @@ export interface Expense {
   description: string;
   payee: string;
   paymentMethod: PaymentMethod;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status: 'APPROVED' | 'PENDING' | 'REJECTED';
 }
 
+/**
+ * End-of-day financial reconciliation report.
+ */
 export interface DailyClose {
   id: string;
   date: Date;
@@ -300,46 +354,57 @@ export interface DailyClose {
   discounts: number;
   netSales: number;
   cashExpected: number;
-  cashActual: number; // User input
+  cashActual: number;
   cardTotal: number;
   deliveryTotal: number;
-  variance: number; // Actual - Expected
+  variance: number;
   status: 'OPEN' | 'CLOSED';
   closedBy?: string;
-  notes?: string;
 }
 
-export interface PnLRow {
-  label: string;
-  value: number;
-  percentage: number;
-  type: 'REVENUE' | 'COST' | 'EXPENSE' | 'PROFIT';
-  level: 1 | 2 | 3; // Indentation level
+/**
+ * Global restaurant configuration.
+ */
+export interface GeneralSettings {
+  restaurantName: string;
+  branchName: string;
+  currency: string;
+  taxRate: number;
+  serviceCharge: number;
+  printLanguage: 'EN' | 'AR' | 'BOTH';
 }
 
-// Settings & Admin Types
-export type Permission = 
-  | 'POS_ACCESS' | 'POS_VOID' | 'POS_DISCOUNT' 
-  | 'VIEW_DASHBOARD' | 'MANAGE_INVENTORY' | 'MANAGE_STAFF' 
-  | 'VIEW_REPORTS' | 'SYSTEM_SETTINGS';
+export type Permission = 'POS_ACCESS' | 'POS_VOID' | 'POS_DISCOUNT' | 'VIEW_DASHBOARD' | 'MANAGE_INVENTORY' | 'MANAGE_STAFF' | 'VIEW_REPORTS' | 'SYSTEM_SETTINGS';
 
+/**
+ * System role grouping permissions.
+ */
 export interface Role {
   id: string;
   name: string;
+  isSystem?: boolean;
   permissions: Permission[];
-  isSystem?: boolean; // Cannot delete system roles
 }
 
+/**
+ * Application user account.
+ */
 export interface SystemUser {
   id: string;
   username: string;
+  email?: string;
+  password?: string; // Mock password for demo auth
+  pin?: string;      // Mock pin for demo auth
   roleId: string;
   roleName: string;
-  staffId?: string; // Link to HR
-  lastLogin?: Date;
+  staffId?: string;
   status: 'ACTIVE' | 'LOCKED';
+  lastLogin?: Date;
 }
 
+/**
+ * Security and action audit record.
+ */
 export interface AuditLog {
   id: string;
   timestamp: Date;
@@ -350,6 +415,9 @@ export interface AuditLog {
   severity: 'INFO' | 'WARNING' | 'CRITICAL';
 }
 
+/**
+ * Networked hardware printer.
+ */
 export interface Printer {
   id: string;
   name: string;
@@ -359,11 +427,13 @@ export interface Printer {
   location: string;
 }
 
-export interface GeneralSettings {
-  restaurantName: string;
-  branchName: string;
-  currency: string;
-  taxRate: number;
-  serviceCharge: number;
-  printLanguage: 'EN' | 'AR' | 'BOTH';
+/**
+ * Calculated row for P&L reporting.
+ */
+export interface PnLRow {
+  label: string;
+  value: number;
+  percentage: number;
+  type: 'REVENUE' | 'COST' | 'PROFIT' | 'EXPENSE';
+  level: number;
 }

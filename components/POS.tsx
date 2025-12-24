@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
-import { CATEGORIES, MENU_ITEMS, TABLES, MODIFIER_GROUPS, RECENT_ORDERS } from '../constants';
+import { MODIFIER_GROUPS } from '../constants';
 import { CartItem, MenuItem, OrderType, Table, TableStatus, ModifierOption, ModifierGroup, Order, Branch, OrderStatus, Payment } from '../types';
-import { Search, Grid, Trash2, Plus, Minus, CreditCard, ChefHat, User, MoreVertical, WifiOff, ArrowLeft, LayoutGrid, Delete, Check, X, Printer, Split, MoveRight, MoveLeft, Users, History, RefreshCcw, Loader2, Percent, FileText, Unlock, ChevronRight, MapPin, Utensils, ShoppingBag, Truck, Banknote, Star, CreditCard as CardIcon } from 'lucide-react';
+import { Search, Grid, Trash2, Plus, Minus, CreditCard, ChefHat, User, MoreVertical, WifiOff, ArrowLeft, LayoutGrid, Delete, Check, X, Printer, Split, MoveRight, MoveLeft, Users, History, RefreshCcw, Loader2, Percent, FileText, Unlock, ChevronRight, MapPin, Utensils, ShoppingBag, Truck, Banknote, Star, CreditCard as CardIcon, Image as ImageIcon, List, MessageSquare, Send, Gift, Ban, Move, Receipt, Timer, Settings } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 
 type POSView = 'FLOOR_PLAN' | 'ORDER' | 'PAYMENT' | 'SPLIT';
 
@@ -10,329 +10,115 @@ interface POSProps {
   onNotify: (msg: string, type: 'success' | 'error' | 'info') => void;
   currentBranch: Branch;
   onPlaceOrder?: (order: Order) => void;
+  liveOrders: Order[]; 
+  completedOrders: Order[]; 
 }
 
-// --- SUB-COMPONENTS ---
-
-const PaymentModal = ({ total, onClose, onComplete, currency }: { total: number, onClose: () => void, onComplete: (payments: Payment[]) => void, currency: string }) => {
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [inputAmount, setInputAmount] = useState<string>('');
-
-  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-  const remaining = Math.max(0, total - totalPaid);
-  const change = Math.max(0, totalPaid - total);
-
-  const handleNumPad = (val: string) => {
-    if (val === 'back') {
-      setInputAmount(prev => prev.slice(0, -1));
-    } else if (val === 'clear') {
-      setInputAmount('');
-    } else {
-      if (val === '.' && inputAmount.includes('.')) return;
-      setInputAmount(prev => prev + val);
+const QuickTableModal = ({ 
+  table,
+  onClose, 
+  onSave 
+}: { 
+  table?: Table | null;
+  onClose: () => void; 
+  onSave: (t: Partial<Table>) => void; 
+}) => {
+  const [formData, setFormData] = useState<Partial<Table>>(
+    table ? { ...table } : {
+      name: '',
+      seats: 4,
+      zone: 'Indoor',
+      status: TableStatus.AVAILABLE
     }
-  };
-
-  const addPayment = (method: 'CASH' | 'CARD' | 'LOYALTY') => {
-    // If input is empty, assume user wants to pay the full remaining amount
-    let amount = inputAmount ? parseFloat(inputAmount) : remaining;
-    
-    if (amount <= 0) return;
-    
-    // For cash, we allow overpayment (change). For others, cap at remaining.
-    if (method !== 'CASH' && amount > remaining) {
-      amount = remaining;
-    }
-
-    setPayments(prev => [...prev, { method, amount }]);
-    setInputAmount('');
-  };
-
-  const removePayment = (index: number) => {
-    setPayments(prev => prev.filter((_, i) => i !== index));
-  };
+  );
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-brand-surface w-full max-w-4xl rounded-2xl border border-gray-200 dark:border-neutral-700 shadow-2xl flex flex-col md:flex-row overflow-hidden h-[600px]">
-        
-        {/* Left Side: Summary */}
-        <div className="flex-1 bg-gray-50 dark:bg-neutral-900 p-6 flex flex-col border-r border-gray-200 dark:border-neutral-800">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Payment Summary</h3>
-            <p className="text-sm text-gray-500 dark:text-neutral-400">Review breakdown below</p>
-          </div>
-
-          <div className="space-y-4 mb-6">
-            <div className="flex justify-between items-center bg-white dark:bg-neutral-800 p-4 rounded-xl border border-gray-200 dark:border-neutral-700 shadow-sm">
-              <span className="text-gray-500 dark:text-neutral-400 font-medium">Total Due</span>
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">{total.toFixed(3)} <span className="text-sm text-gray-500">{currency}</span></span>
-            </div>
-            
-            <div className={`flex justify-between items-center p-4 rounded-xl border shadow-sm ${remaining > 0 ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900 text-red-600 dark:text-red-400' : 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-900 text-green-600 dark:text-green-400'}`}>
-              <span className="font-medium">{remaining > 0 ? 'Remaining' : 'Change'}</span>
-              <span className="text-2xl font-bold font-mono">{remaining > 0 ? remaining.toFixed(3) : change.toFixed(3)}</span>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto space-y-2">
-            <div className="text-xs font-bold text-gray-500 dark:text-neutral-500 uppercase mb-2">Tenders Applied</div>
-            {payments.length === 0 && <div className="text-center py-4 text-gray-400 italic text-sm">No payments added yet.</div>}
-            {payments.map((p, idx) => (
-              <div key={idx} className="flex justify-between items-center bg-white dark:bg-neutral-800 p-3 rounded-lg border border-gray-200 dark:border-neutral-700 animate-in slide-in-from-left-2 duration-200">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${p.method === 'CASH' ? 'bg-green-100 text-green-600' : p.method === 'CARD' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
-                    {p.method === 'CASH' ? <Banknote size={16}/> : p.method === 'CARD' ? <CardIcon size={16}/> : <Star size={16}/>}
-                  </div>
-                  <span className="font-bold text-gray-900 dark:text-white text-sm">{p.method}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-mono font-bold text-gray-900 dark:text-white">{p.amount.toFixed(3)}</span>
-                  <button onClick={() => removePayment(idx)} className="text-gray-400 hover:text-red-500"><Trash2 size={16}/></button>
-                </div>
-              </div>
-            ))}
-          </div>
+    <div className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-brand-surface w-full max-w-lg rounded-3xl border border-gray-200 dark:border-neutral-700 shadow-2xl overflow-hidden flex flex-col">
+        <div className="p-8 border-b border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 flex justify-between items-center">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+            <LayoutGrid size={24} className="text-brand-red" /> {table ? 'Edit Table' : 'New Table'}
+          </h3>
+          <button onClick={onClose} className="p-2 text-gray-500 dark:text-neutral-500 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full"><X size={28}/></button>
         </div>
+        
+        <div className="p-8 space-y-6">
+          <div>
+            <label className="block text-sm font-bold text-gray-500 dark:text-neutral-500 mb-3 uppercase tracking-wider">Table Name / ID</label>
+            <input 
+              type="text" 
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-2xl p-5 text-xl text-gray-900 dark:text-white focus:border-brand-red outline-none ring-offset-2 focus:ring-2 focus:ring-brand-red/20 transition-all"
+              placeholder="e.g. T-10"
+              autoFocus
+            />
+          </div>
 
-        {/* Right Side: Keypad */}
-        <div className="flex-[1.2] bg-white dark:bg-brand-surface p-6 flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-             <div className="flex-1">
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+                <label className="block text-sm font-bold text-gray-500 dark:text-neutral-500 mb-3 uppercase tracking-wider">Seats</label>
                 <input 
-                  type="text" 
-                  readOnly 
-                  value={inputAmount} 
-                  placeholder={remaining.toFixed(3)}
-                  className={`w-full text-right text-4xl font-mono font-bold bg-transparent outline-none placeholder:text-gray-300 dark:placeholder:text-neutral-700 ${inputAmount ? 'text-gray-900 dark:text-white' : 'text-gray-300'}`}
+                type="number" 
+                value={formData.seats}
+                onChange={(e) => setFormData({...formData, seats: parseInt(e.target.value) || 0})}
+                className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-2xl p-5 text-xl text-gray-900 dark:text-white focus:border-brand-red outline-none"
                 />
-             </div>
-             <button onClick={() => handleNumPad('back')} className="p-3 text-gray-500 hover:text-red-500 transition-colors"><Delete size={28}/></button>
+            </div>
+            <div>
+                <label className="block text-sm font-bold text-gray-500 dark:text-neutral-500 mb-3 uppercase tracking-wider">Zone</label>
+                <select 
+                value={formData.zone}
+                onChange={(e) => setFormData({...formData, zone: e.target.value})}
+                className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-2xl p-5 text-lg text-gray-900 dark:text-white focus:border-brand-red outline-none appearance-none"
+                >
+                <option value="Indoor">Indoor</option>
+                <option value="Outdoor">Outdoor</option>
+                <option value="Terrace">Terrace</option>
+                <option value="VIP">VIP</option>
+                </select>
+            </div>
           </div>
+        </div>
 
-          <div className="flex-1 grid grid-cols-4 gap-3 mb-6">
-             {/* Keypad */}
-             <div className="col-span-3 grid grid-cols-3 gap-3">
-                {[1,2,3,4,5,6,7,8,9,'.',0,'C'].map(k => (
-                  <button 
-                    key={k} 
-                    onClick={() => k === 'C' ? handleNumPad('clear') : handleNumPad(k.toString())}
-                    className="h-16 rounded-xl bg-gray-50 dark:bg-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-700 text-2xl font-bold text-gray-900 dark:text-white transition-all active:scale-95 shadow-sm border border-gray-200 dark:border-neutral-700"
-                  >
-                    {k}
-                  </button>
-                ))}
-             </div>
-
-             {/* Methods */}
-             <div className="flex flex-col gap-3">
-                <button onClick={() => addPayment('CASH')} className="flex-1 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900 text-green-700 dark:text-green-400 font-bold flex flex-col items-center justify-center gap-1 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all active:scale-95">
-                   <Banknote size={20} /> <span className="text-xs">Cash</span>
-                </button>
-                <button onClick={() => addPayment('CARD')} className="flex-1 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-400 font-bold flex flex-col items-center justify-center gap-1 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all active:scale-95">
-                   <CardIcon size={20} /> <span className="text-xs">Card</span>
-                </button>
-                <button onClick={() => addPayment('LOYALTY')} className="flex-1 rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-900 text-purple-700 dark:text-purple-400 font-bold flex flex-col items-center justify-center gap-1 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all active:scale-95">
-                   <Star size={20} /> <span className="text-xs">Points</span>
-                </button>
-             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-             <button onClick={onClose} className="py-4 rounded-xl bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-neutral-400 font-bold hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors">
-               Cancel
-             </button>
+        <div className="p-8 border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 flex justify-end gap-4">
+             <button onClick={onClose} className="px-8 py-4 rounded-2xl font-bold text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white hover:bg-gray-200 dark:hover:bg-neutral-800 text-lg transition-all">Cancel</button>
              <button 
-               onClick={() => onComplete(payments)}
-               disabled={remaining > 0.001} // Float tolerance
-               className={`py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg ${remaining <= 0.001 ? 'bg-brand-red text-white hover:bg-brand-redHover shadow-red-900/30' : 'bg-gray-200 dark:bg-neutral-800 text-gray-400 dark:text-neutral-600 cursor-not-allowed shadow-none'}`}
+               onClick={() => onSave(formData)}
+               disabled={!formData.name}
+               className="px-10 py-4 rounded-2xl font-bold bg-brand-red text-white hover:bg-brand-redHover shadow-xl shadow-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed text-lg transition-all active:scale-95"
              >
-               <Check size={20} /> Complete Order
+               {table ? 'Update Table' : 'Add Table'}
              </button>
-          </div>
         </div>
       </div>
     </div>
   );
 };
 
-const RefundModal = ({ order, onClose, onConfirm }: { order: any, onClose: () => void, onConfirm: (amount: number, reason: string) => void }) => {
-  const [reason, setReason] = useState('Customer Complaint');
-  const [amount, setAmount] = useState(order.total.toString());
-
-  return (
-    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-brand-surface w-full max-w-md rounded-xl border border-gray-200 dark:border-neutral-700 shadow-2xl p-6">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Process Refund</h3>
-        <p className="text-gray-500 dark:text-neutral-400 text-sm mb-6">Order #{order.id} • {order.total.toFixed(3)} KWD</p>
-        
-        <div className="space-y-4">
-           <div>
-             <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Refund Reason</label>
-             <select 
-               value={reason} 
-               onChange={(e) => setReason(e.target.value)}
-               className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none"
-             >
-               <option>Customer Complaint</option>
-               <option>Wrong Item</option>
-               <option>Accidental Charge</option>
-               <option>Order Cancelled</option>
-             </select>
-           </div>
-           
-           <div>
-             <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2">Refund Amount</label>
-             <input 
-               type="number" 
-               value={amount}
-               onChange={(e) => setAmount(e.target.value)}
-               className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none font-mono font-bold"
-             />
-           </div>
-        </div>
-
-        <div className="flex gap-3 mt-8">
-           <button onClick={onClose} className="flex-1 py-3 bg-gray-200 dark:bg-neutral-800 text-gray-700 dark:text-neutral-300 rounded-lg font-bold hover:bg-gray-300 dark:hover:bg-neutral-700">Cancel</button>
-           <button onClick={() => onConfirm(parseFloat(amount) || 0, reason)} className="flex-1 py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-lg shadow-red-900/30">Confirm Refund</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const HistoryModal = ({ onClose, onNotify }: { onClose: () => void, onNotify: (msg: string, type: 'success' | 'error' | 'info') => void }) => {
-  const [refundOrder, setRefundOrder] = useState<any>(null);
-
-  const handleReprint = (id: string) => {
-    onNotify(`Printing receipt for Order #${id}...`, 'info');
-  };
-
-  const handleRefundSuccess = (amount: number, reason: string) => {
-    onNotify(`Refunded ${amount.toFixed(3)} KWD for Order #${refundOrder.id}`, 'success');
-    setRefundOrder(null);
-  };
-
-  return (
-    <>
-      {refundOrder && (
-        <RefundModal 
-          order={refundOrder} 
-          onClose={() => setRefundOrder(null)} 
-          onConfirm={handleRefundSuccess} 
-        />
-      )}
-      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-        <div className="bg-white dark:bg-brand-surface w-full max-w-4xl rounded-xl border border-gray-200 dark:border-neutral-700 shadow-2xl h-[600px] flex flex-col">
-          <div className="p-4 border-b border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <History size={20} /> Order History
-            </h2>
-            <button onClick={onClose} className="p-2 hover:bg-gray-200 dark:hover:bg-neutral-800 rounded-lg text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white">
-              <X size={20} />
-            </button>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto p-4">
-             <table className="w-full text-left text-sm">
-               <thead className="bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-neutral-400 font-medium sticky top-0">
-                 <tr>
-                   <th className="p-4">Order ID</th>
-                   <th className="p-4">Time</th>
-                   <th className="p-4">Type</th>
-                   <th className="p-4">Status</th>
-                   <th className="p-4 text-right">Total</th>
-                   <th className="p-4 text-right">Actions</th>
-                 </tr>
-               </thead>
-               <tbody className="divide-y divide-gray-200 dark:divide-neutral-800">
-                 {RECENT_ORDERS.map(order => (
-                   <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800/50 text-gray-700 dark:text-neutral-300">
-                      <td className="p-4 font-mono text-gray-900 dark:text-white">{order.id}</td>
-                      <td className="p-4 text-gray-500 dark:text-neutral-500">{order.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                      <td className="p-4"><span className="bg-gray-200 dark:bg-neutral-800 px-2 py-1 rounded text-xs font-bold">{order.type}</span></td>
-                      <td className="p-4">
-                        <span className={`text-xs font-bold ${order.status === 'Completed' ? 'text-green-600 dark:text-green-500' : 'text-yellow-600 dark:text-yellow-500'}`}>{order.status}</span>
-                      </td>
-                      <td className="p-4 text-right font-mono font-bold">{order.total.toFixed(3)}</td>
-                      <td className="p-4 text-right">
-                         <button onClick={() => handleReprint(order.id)} className="text-xs bg-gray-200 dark:bg-neutral-800 hover:bg-gray-300 dark:hover:bg-white hover:text-black px-3 py-1.5 rounded font-bold mr-2 transition-colors">Reprint</button>
-                         <button onClick={() => setRefundOrder(order)} className="text-xs bg-gray-200 dark:bg-neutral-800 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-500 px-3 py-1.5 rounded font-bold transition-colors">Refund</button>
-                      </td>
-                   </tr>
-                 ))}
-               </tbody>
-             </table>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-};
-
-const DiscountModal = ({ onClose, onApply }: { onClose: () => void, onApply: (type: 'PERCENT' | 'FIXED', value: number) => void }) => {
-  const [value, setValue] = useState('');
-  const [type, setType] = useState<'PERCENT' | 'FIXED'>('PERCENT');
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-brand-surface w-full max-w-sm rounded-xl border border-gray-200 dark:border-neutral-700 shadow-2xl p-6">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Apply Discount</h3>
-        
-        <div className="flex gap-2 mb-4">
-          <button onClick={() => setType('PERCENT')} className={`flex-1 py-2 rounded-lg font-bold text-sm ${type === 'PERCENT' ? 'bg-brand-red text-white' : 'bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-neutral-400'}`}>% Percentage</button>
-          <button onClick={() => setType('FIXED')} className={`flex-1 py-2 rounded-lg font-bold text-sm ${type === 'FIXED' ? 'bg-brand-red text-white' : 'bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-neutral-400'}`}>Fixed Amount</button>
-        </div>
-
-        <input 
-          type="number" 
-          value={value} 
-          onChange={(e) => setValue(e.target.value)} 
-          className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-4 text-2xl font-bold text-center text-gray-900 dark:text-white focus:border-brand-red outline-none mb-6"
-          placeholder="0"
-          autoFocus
-        />
-
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 bg-gray-200 dark:bg-neutral-800 text-gray-700 dark:text-neutral-300 rounded-lg font-bold">Cancel</button>
-          <button onClick={() => onApply(type, parseFloat(value))} className="flex-1 py-3 bg-brand-red text-white rounded-lg font-bold shadow-lg shadow-red-900/30">Apply</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export const POS: React.FC<POSProps> = ({ onNotify, currentBranch, onPlaceOrder }) => {
+export const POS: React.FC<POSProps> = ({ onNotify, currentBranch, onPlaceOrder, liveOrders, completedOrders }) => {
+  const { tables, addTable, updateTable, categories, menuItems, currentUser } = useApp();
   const [view, setView] = useState<POSView>('FLOOR_PLAN');
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [orderType, setOrderType] = useState<OrderType>(OrderType.DINE_IN);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0].id);
+  const [selectedCategory, setSelectedCategory] = useState(categories[0]?.id || '');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showHistory, setShowHistory] = useState(false);
-  const [showDiscountModal, setShowDiscountModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showQuickTableModal, setShowQuickTableModal] = useState(false);
+  const [tableToEdit, setTableToEdit] = useState<Table | null>(null);
   
-  // Computed Cart Totals
   const subtotal = cart.reduce((acc, item) => acc + (item.price + item.modifiers.reduce((sum, mod) => sum + mod.price, 0)) * item.quantity, 0);
-  const discount = 0; // Placeholder for now
   const tax = subtotal * (currentBranch.taxRate / 100);
-  const total = subtotal - discount + tax;
+  const total = subtotal + tax;
 
   const handleTableSelect = (table: Table) => {
     setSelectedTable(table);
     setOrderType(OrderType.DINE_IN);
+    const activeTickets = liveOrders.filter(o => o.table === table.name && o.status !== OrderStatus.COMPLETED);
+    const aggregatedItems: CartItem[] = [];
+    activeTickets.forEach(ticket => ticket.items.forEach(item => aggregatedItems.push({ ...item, fired: true })));
+    setCart(aggregatedItems);
     setView('ORDER');
-  };
-
-  const handleOrderTypeChange = (type: OrderType) => {
-    setOrderType(type);
-    if (type === OrderType.DINE_IN) {
-      setView('FLOOR_PLAN');
-    } else {
-      setSelectedTable(null);
-      setView('ORDER');
-    }
   };
 
   const handleAddToCart = (item: MenuItem) => {
@@ -340,221 +126,201 @@ export const POS: React.FC<POSProps> = ({ onNotify, currentBranch, onPlaceOrder 
       ...item,
       cartId: Math.random().toString(36).substr(2, 9),
       quantity: 1,
-      modifiers: []
+      modifiers: [],
+      fired: false 
     };
     setCart([...cart, newItem]);
   };
 
-  const handleRemoveFromCart = (cartId: string) => {
-    setCart(cart.filter(item => item.cartId !== cartId));
+  const handleUpdateQty = (cartId: string, delta: number) => {
+    setCart(prev => prev.map(item => 
+      item.cartId === cartId && !item.fired ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
+    ));
   };
 
-  const handleQuantityChange = (cartId: string, change: number) => {
-    setCart(cart.map(item => {
-      if (item.cartId === cartId) {
-        return { ...item, quantity: Math.max(1, item.quantity + change) };
-      }
-      return item;
-    }));
-  };
-
-  const handlePlaceOrderClick = () => {
-    if (cart.length === 0) {
-      onNotify("Cart is empty", "error");
-      return;
+  const handleQuickTableSave = (data: Partial<Table>) => {
+    if (tableToEdit) {
+      updateTable(tableToEdit.id, data);
+      onNotify(`Table updated successfully.`, 'success');
+    } else {
+      const newTable: Table = {
+        id: `t-${Date.now()}`,
+        name: data.name!,
+        seats: data.seats || 4,
+        zone: data.zone || 'Indoor',
+        status: TableStatus.AVAILABLE
+      };
+      addTable(newTable);
+      onNotify(`Table ${newTable.name} added.`, 'success');
     }
-
-    if (orderType === OrderType.DINE_IN && !selectedTable) {
-        onNotify("Please select a table for Dine In", "error");
-        return;
-    }
-
-    // Open Payment Modal instead of immediate completion
-    setShowPaymentModal(true);
+    setShowQuickTableModal(false);
+    setTableToEdit(null);
   };
 
-  const handlePaymentComplete = (payments: Payment[]) => {
+  const handleFinishOrder = async () => {
+    const newItems = cart.filter(i => !i.fired);
+    if (newItems.length === 0) return;
+
     const order: Order = {
-      id: `ORD-${Date.now()}`,
+      id: `ORD-${Math.floor(Math.random() * 10000)}`,
       type: orderType,
       table: selectedTable?.name,
-      status: OrderStatus.KITCHEN,
-      items: cart,
+      status: OrderStatus.PENDING,
+      items: newItems,
       total: total,
-      payments: payments, // Store payment breakdown
       timestamp: new Date(),
-      staffName: 'Current User' // Should come from context
+      staffName: currentUser?.username || 'Terminal 04'
     };
 
     if (onPlaceOrder) {
-      onPlaceOrder(order);
-    }
-    
-    onNotify("Order placed successfully", "success");
-    setCart([]);
-    setSelectedTable(null);
-    setShowPaymentModal(false);
-    
-    if (orderType === OrderType.DINE_IN) {
-        setView('FLOOR_PLAN');
+      await onPlaceOrder(order);
+      setCart([]);
+      setView('FLOOR_PLAN');
+      setSelectedTable(null);
     }
   };
 
   const renderFloorPlan = () => (
-    <div className="p-6 h-full overflow-y-auto">
-      <div className="flex justify-between items-center mb-6">
-         <h2 className="text-xl font-bold text-gray-900 dark:text-white">Select Table</h2>
-         <div className="flex gap-2">
-            <button onClick={() => handleOrderTypeChange(OrderType.TAKEAWAY)} className="bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-neutral-700 shadow-sm">
-               <ShoppingBag size={20} /> Takeaway
-            </button>
-            <button onClick={() => handleOrderTypeChange(OrderType.DELIVERY)} className="bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-neutral-700 shadow-sm">
-               <Truck size={20} /> Delivery
+    <div className="p-10 h-full overflow-y-auto">
+      <div className="flex justify-between items-center mb-12">
+         <h2 className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">Select Table</h2>
+         <div className="flex gap-6">
+            <button onClick={() => { setOrderType(OrderType.TAKEAWAY); setView('ORDER'); }} className="bg-white dark:bg-neutral-800 border-4 border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white px-12 py-6 rounded-3xl font-black text-2xl flex items-center gap-4 hover:bg-gray-100 dark:hover:bg-neutral-700 shadow-2xl transition-all active:scale-95">
+               <ShoppingBag size={32} /> Takeaway
             </button>
          </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {TABLES.map(table => (
-          <button
-            key={table.id}
-            onClick={() => handleTableSelect(table)}
-            className={`p-6 rounded-xl border-2 flex flex-col items-center justify-center aspect-square transition-all ${
-              table.status === TableStatus.AVAILABLE 
-                ? 'bg-white dark:bg-brand-surface border-gray-200 dark:border-neutral-700 hover:border-brand-red text-gray-900 dark:text-white' 
-                : table.status === TableStatus.OCCUPIED 
-                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900 text-red-700 dark:text-red-400'
-                : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-900 text-yellow-700 dark:text-yellow-400'
-            }`}
-          >
-            <div className="text-2xl font-bold mb-1">{table.name}</div>
-            <div className="text-sm font-medium opacity-70">{table.seats} Seats</div>
-            <div className="mt-2 text-xs font-bold px-2 py-1 rounded bg-black/5 dark:bg-white/10 uppercase tracking-wide">
-              {table.status}
-            </div>
-          </button>
-        ))}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-10 pb-20">
+        {tables.map(table => {
+          const activeTickets = liveOrders.filter(o => o.table === table.name && o.status !== OrderStatus.COMPLETED);
+          const status = activeTickets.length > 0 ? TableStatus.OCCUPIED : table.status;
+          return (
+            <button
+              key={table.id}
+              onClick={() => handleTableSelect(table)}
+              className={`p-10 rounded-[40px] border-4 flex flex-col items-center justify-center aspect-square transition-all group relative ${
+                status === TableStatus.AVAILABLE 
+                  ? 'bg-white dark:bg-brand-surface border-gray-100 dark:border-neutral-800 hover:border-brand-red text-gray-900 dark:text-white shadow-xl hover:shadow-2xl' 
+                  : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900 text-red-700 dark:text-red-400'
+              }`}
+            >
+              <div className="text-5xl font-black mb-3">{table.name}</div>
+              <div className="text-xl font-bold opacity-60 tracking-tight">{table.seats} Seats</div>
+              <div className={`mt-6 px-6 py-2 rounded-full text-sm font-black uppercase tracking-widest ${status === TableStatus.AVAILABLE ? 'bg-green-100 text-green-600' : 'bg-red-600 text-white'}`}>
+                {status}
+              </div>
+            </button>
+          );
+        })}
+        <button
+          onClick={() => { setTableToEdit(null); setShowQuickTableModal(true); }}
+          className="p-10 rounded-[40px] border-4 border-dashed border-gray-300 dark:border-neutral-700 flex flex-col items-center justify-center aspect-square transition-all hover:border-brand-red text-gray-400 hover:text-brand-red hover:bg-gray-50 dark:hover:bg-neutral-900/30 group"
+        >
+          <Plus size={64} className="mb-6 transition-transform group-hover:scale-110" />
+          <div className="text-xl font-black uppercase tracking-widest">Add Table</div>
+        </button>
       </div>
     </div>
   );
 
   const renderOrderView = () => (
-    <div className="flex h-full">
-      {/* Menu Area */}
+    <div className="flex h-full overflow-hidden">
       <div className="flex-1 flex flex-col bg-gray-50 dark:bg-black/50">
-        
-        {/* Order Type Selectors */}
-        <div className="grid grid-cols-3 gap-2 p-2 bg-white dark:bg-brand-surface border-b border-gray-200 dark:border-neutral-800">
-            <button 
-                onClick={() => handleOrderTypeChange(OrderType.DINE_IN)}
-                className={`py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${orderType === OrderType.DINE_IN ? 'bg-brand-red text-white shadow-md' : 'bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-neutral-400 hover:bg-gray-200 dark:hover:bg-neutral-700'}`}
-            >
-                <Utensils size={16} /> Dine In
-            </button>
-            <button 
-                onClick={() => handleOrderTypeChange(OrderType.TAKEAWAY)}
-                className={`py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${orderType === OrderType.TAKEAWAY ? 'bg-brand-red text-white shadow-md' : 'bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-neutral-400 hover:bg-gray-200 dark:hover:bg-neutral-700'}`}
-            >
-                <ShoppingBag size={16} /> Takeaway
-            </button>
-            <button 
-                onClick={() => handleOrderTypeChange(OrderType.DELIVERY)}
-                className={`py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${orderType === OrderType.DELIVERY ? 'bg-brand-red text-white shadow-md' : 'bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-neutral-400 hover:bg-gray-200 dark:hover:bg-neutral-700'}`}
-            >
-                <Truck size={16} /> Delivery
-            </button>
-        </div>
-
-        {/* Categories */}
-        <div className="p-2 bg-white dark:bg-brand-surface border-b border-gray-200 dark:border-neutral-800 overflow-x-auto whitespace-nowrap flex gap-2">
-          {CATEGORIES.map(cat => (
+        <div className="p-6 bg-white dark:bg-brand-surface border-b-2 border-gray-200 dark:border-neutral-800 overflow-x-auto whitespace-nowrap flex gap-6 scrollbar-hide">
+          {categories.map(cat => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
+              className={`px-10 py-6 rounded-3xl text-xl font-black transition-all shadow-md ${
                 selectedCategory === cat.id 
-                  ? 'bg-brand-red text-white' 
-                  : 'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-neutral-400 hover:bg-gray-200 dark:hover:bg-neutral-700'
+                  ? 'bg-brand-red text-white scale-105 shadow-brand-red/30' 
+                  : 'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-neutral-400 hover:bg-gray-200 dark:hover:bg-neutral-700 hover:text-black dark:hover:text-white'
               }`}
             >
               {cat.name}
             </button>
           ))}
         </div>
-
-        {/* Items Grid */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {MENU_ITEMS.filter(item => item.categoryId === selectedCategory && item.name.toLowerCase().includes(searchQuery.toLowerCase())).map(item => (
+        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
+            {menuItems.filter(item => item.categoryId === selectedCategory).map(item => (
               <button
                 key={item.id}
                 onClick={() => handleAddToCart(item)}
-                className="bg-white dark:bg-brand-surface border border-gray-200 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-start text-left hover:border-brand-red transition-all group shadow-sm"
+                className="bg-white dark:bg-brand-surface border-4 border-gray-200 dark:border-neutral-800 rounded-[40px] p-6 flex flex-col items-start text-left hover:border-brand-red transition-all group shadow-xl hover:shadow-2xl active:scale-[0.98] overflow-hidden"
               >
-                <div className="font-bold text-gray-900 dark:text-white mb-1 group-hover:text-brand-red">{item.name}</div>
-                <div className="text-xs text-gray-500 dark:text-neutral-500 mb-2">{item.nameAr}</div>
-                <div className="mt-auto font-mono font-bold text-brand-red">{item.price.toFixed(3)}</div>
+                <div className="w-full aspect-square rounded-[30px] overflow-hidden mb-6 bg-gray-100 dark:bg-neutral-800 relative shadow-inner">
+                  {item.image ? <img src={item.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" /> : <div className="w-full h-full flex items-center justify-center text-gray-400"><ImageIcon size={64} /></div>}
+                </div>
+                <div className="font-black text-gray-900 dark:text-white text-2xl line-clamp-2 mb-4 leading-tight tracking-tighter h-16">{item.name}</div>
+                <div className="mt-auto flex justify-between items-center w-full">
+                    <span className="font-mono font-black text-brand-red text-3xl">{item.price.toFixed(3)}</span>
+                    <div className="bg-gray-100 dark:bg-neutral-800 p-4 rounded-2xl group-hover:bg-brand-red group-hover:text-white transition-all shadow-sm">
+                        <Plus size={32} strokeWidth={3} />
+                    </div>
+                </div>
               </button>
             ))}
           </div>
         </div>
       </div>
-
-      {/* Cart Sidebar */}
-      <div className="w-96 bg-white dark:bg-brand-surface border-l border-gray-200 dark:border-neutral-800 flex flex-col shadow-xl z-10">
-        <div className="p-4 border-b border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="font-bold text-lg text-gray-900 dark:text-white">Current Order</h2>
-            <button onClick={() => { setView('FLOOR_PLAN'); setSelectedTable(null); }} className="text-xs text-gray-500 hover:text-red-500">Close</button>
-          </div>
-          <div className="text-sm text-gray-500 dark:text-neutral-400 flex items-center justify-between">
-             <span>{orderType === OrderType.DINE_IN ? (selectedTable ? `Table: ${selectedTable.name}` : 'No Table Selected') : orderType}</span>
-             {orderType === OrderType.DINE_IN && !selectedTable && <button onClick={() => setView('FLOOR_PLAN')} className="text-brand-red text-xs font-bold hover:underline">Select Table</button>}
-          </div>
+      <div className="w-[500px] bg-white dark:bg-brand-surface border-l-4 border-gray-200 dark:border-neutral-800 flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.2)] z-10">
+        <div className="p-8 border-b-2 border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 flex justify-between items-center">
+          <h2 className="font-black text-3xl text-gray-900 dark:text-white tracking-tighter uppercase">Order Summary</h2>
+          <button onClick={() => { setView('FLOOR_PLAN'); setSelectedTable(null); }} className="p-4 bg-gray-100 dark:bg-neutral-800 rounded-2xl text-gray-500 hover:text-red-500 active:scale-90 transition-all"><X size={32}/></button>
         </div>
-
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {cart.map(item => (
-            <div key={item.cartId} className="flex justify-between items-start group">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="font-bold text-gray-900 dark:text-white text-sm">{item.name}</div>
+        <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+            {cart.map(item => (
+                <div key={item.cartId} className="flex flex-col gap-6 p-7 bg-gray-50 dark:bg-neutral-800/50 rounded-[35px] border-2 border-gray-200 dark:border-neutral-700 animate-in slide-in-from-right-4 transition-all">
+                    <div className="flex justify-between items-start">
+                        <div className="flex-1 pr-4">
+                            <div className="font-black text-xl text-gray-900 dark:text-white leading-tight">{item.name}</div>
+                            <div className="text-brand-red font-mono font-black text-2xl mt-2">{(item.price * item.quantity).toFixed(3)}</div>
+                        </div>
+                        <button className="p-3 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl transition-all"><Trash2 size={28} /></button>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center bg-white dark:bg-neutral-900 rounded-3xl border-4 border-gray-200 dark:border-neutral-700 shadow-lg overflow-hidden">
+                            <button onClick={() => handleUpdateQty(item.cartId, -1)} className="w-16 h-16 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-500 active:scale-75 transition-all"><Minus size={32} strokeWidth={4}/></button>
+                            <span className="w-16 text-center text-2xl font-black tabular-nums">{item.quantity}</span>
+                            <button onClick={() => handleUpdateQty(item.cartId, 1)} className="w-16 h-16 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-500 active:scale-75 transition-all"><Plus size={32} strokeWidth={4}/></button>
+                        </div>
+                        {item.fired && <span className="text-xs font-black uppercase bg-green-500 text-white px-5 py-2 rounded-full tracking-widest shadow-lg shadow-green-900/20">Kitchen</span>}
+                    </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center bg-gray-100 dark:bg-neutral-800 rounded-lg">
-                    <button onClick={() => handleQuantityChange(item.cartId, -1)} className="p-1 hover:text-red-500"><Minus size={14}/></button>
-                    <span className="w-6 text-center text-xs font-bold">{item.quantity}</span>
-                    <button onClick={() => handleQuantityChange(item.cartId, 1)} className="p-1 hover:text-green-500"><Plus size={14}/></button>
-                  </div>
-                  <div className="text-xs font-mono font-bold text-gray-900 dark:text-white">
-                    {(item.price * item.quantity).toFixed(3)}
-                  </div>
+            ))}
+            {cart.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-32 text-gray-300 dark:text-neutral-700">
+                    <ShoppingBag size={120} className="mb-8 opacity-20" />
+                    <p className="text-2xl font-black uppercase tracking-widest italic">Terminal Ready</p>
                 </div>
-              </div>
-              <button onClick={() => handleRemoveFromCart(item.cartId)} className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Trash2 size={16} />
-              </button>
+            )}
+        </div>
+        <div className="p-10 border-t-4 border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 space-y-8">
+            <div className="space-y-4">
+                <div className="flex justify-between text-gray-500 dark:text-neutral-400 font-black text-lg uppercase tracking-tight">
+                    <span>Subtotal</span>
+                    <span className="font-mono">{subtotal.toFixed(3)}</span>
+                </div>
+                <div className="flex justify-between text-gray-400 dark:text-neutral-500 font-bold text-base uppercase tracking-widest">
+                    <span>VAT (0%)</span>
+                    <span className="font-mono">0.000</span>
+                </div>
             </div>
-          ))}
-        </div>
-
-        <div className="p-4 border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 space-y-3">
-          <div className="flex justify-between text-sm text-gray-600 dark:text-neutral-400">
-            <span>Subtotal</span>
-            <span>{subtotal.toFixed(3)}</span>
-          </div>
-          <div className="flex justify-between text-sm text-gray-600 dark:text-neutral-400">
-            <span>Tax ({currentBranch.taxRate}%)</span>
-            <span>{tax.toFixed(3)}</span>
-          </div>
-          <div className="flex justify-between text-xl font-bold text-gray-900 dark:text-white pt-2 border-t border-gray-200 dark:border-neutral-800">
-            <span>Total</span>
-            <span>{total.toFixed(3)} KWD</span>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            <button onClick={() => setShowDiscountModal(true)} className="py-3 rounded-lg border border-gray-300 dark:border-neutral-700 font-bold text-sm hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-700 dark:text-neutral-300">Discount</button>
-            <button onClick={handlePlaceOrderClick} className="py-3 rounded-lg bg-brand-red text-white font-bold text-sm hover:bg-brand-redHover shadow-lg shadow-red-900/20">Pay / Send</button>
-          </div>
+            <div className="flex justify-between items-end border-t-4 border-gray-200 dark:border-neutral-800 pt-8">
+                <span className="font-black text-3xl dark:text-white uppercase tracking-tighter">Total Due</span>
+                <div className="text-right">
+                    <span className="text-5xl font-black text-brand-red font-mono tracking-tighter">{total.toFixed(3)}</span>
+                    <span className="text-lg font-black ml-2 text-gray-500 uppercase">KD</span>
+                </div>
+            </div>
+            <button 
+              onClick={handleFinishOrder}
+              disabled={cart.filter(i => !i.fired).length === 0}
+              className="w-full py-8 bg-brand-red text-white font-black text-3xl rounded-[40px] shadow-[0_20px_50px_rgba(239,68,68,0.4)] hover:bg-brand-redHover transition-all active:scale-[0.97] flex items-center justify-center gap-6 uppercase tracking-tighter disabled:opacity-50 disabled:grayscale"
+            >
+                <CreditCard size={40} strokeWidth={2.5} /> {orderType === OrderType.DINE_IN ? 'Send to Kitchen' : 'Pay Order'}
+            </button>
         </div>
       </div>
     </div>
@@ -562,41 +328,17 @@ export const POS: React.FC<POSProps> = ({ onNotify, currentBranch, onPlaceOrder 
 
   return (
     <div className="h-full flex flex-col bg-gray-100 dark:bg-brand-black overflow-hidden relative">
-      {showHistory && <HistoryModal onClose={() => setShowHistory(false)} onNotify={onNotify} />}
-      {showDiscountModal && <DiscountModal onClose={() => setShowDiscountModal(false)} onApply={(type, val) => { onNotify(`Applied ${type} discount: ${val}`, 'success'); setShowDiscountModal(false); }} />}
-      {showPaymentModal && <PaymentModal total={total} currency={currentBranch.currency} onClose={() => setShowPaymentModal(false)} onComplete={handlePaymentComplete} />}
-
-      {/* Top Bar */}
-      <div className="h-16 bg-white dark:bg-brand-surface border-b border-gray-200 dark:border-neutral-800 flex items-center justify-between px-6 flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <LayoutGrid className="text-brand-red" /> POS Terminal
-          </h1>
-          <div className="h-6 w-px bg-gray-300 dark:bg-neutral-700"></div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-neutral-400">
-            <MapPin size={16} />
-            {currentBranch.name}
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Search items..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 rounded-lg bg-gray-100 dark:bg-neutral-900 border-none text-sm text-gray-900 dark:text-white w-64 focus:ring-1 focus:ring-brand-red outline-none"
-            />
-          </div>
-          <button onClick={() => setShowHistory(true)} className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg text-gray-600 dark:text-neutral-400 transition-colors" title="Order History">
-            <History size={20} />
-          </button>
+      {showQuickTableModal && <QuickTableModal table={tableToEdit} onClose={() => setShowQuickTableModal(false)} onSave={handleQuickTableSave} />}
+      <div className="h-24 bg-white dark:bg-brand-surface border-b-4 border-gray-200 dark:border-neutral-800 flex items-center justify-between px-10 shadow-md">
+        <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-4 uppercase tracking-tighter"><LayoutGrid className="text-brand-red" size={36} /> Terminal 04</h1>
+        <div className="flex items-center gap-8">
+            <div className="relative group">
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-brand-red transition-colors" size={28} />
+                <input type="text" placeholder="Quick Search Items..." className="pl-16 pr-10 py-5 rounded-[25px] bg-gray-100 dark:bg-neutral-800 border-none w-[400px] text-xl font-bold focus:ring-4 focus:ring-brand-red/10 transition-all outline-none shadow-inner" />
+            </div>
+            <button className="p-5 bg-gray-100 dark:bg-neutral-800 rounded-[25px] text-gray-600 dark:text-neutral-400 hover:text-black dark:hover:text-white transition-all shadow-sm active:scale-90"><History size={32} /></button>
         </div>
       </div>
-
-      {/* Content */}
       <div className="flex-1 overflow-hidden relative">
         {view === 'FLOOR_PLAN' ? renderFloorPlan() : renderOrderView()}
       </div>

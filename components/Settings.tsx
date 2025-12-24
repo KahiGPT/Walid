@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { AUDIT_LOGS, STAFF_ROSTER } from '../constants';
-import { Settings as SettingsIcon, Users, Shield, FileText, Printer, Lock, Save, RotateCcw, Plus, Check, Search, Activity, Wifi, WifiOff, FileWarning, BarChart2, Download, Loader2, X, User, MapPin, Store, Trash2 } from 'lucide-react';
-import { Permission, SystemUser, Role, Branch, Printer as PrinterType } from '../types';
+import { Settings as SettingsIcon, Users, Shield, FileText, Printer, Lock, Save, RotateCcw, Plus, Check, Search, Activity, Wifi, WifiOff, FileWarning, BarChart2, Download, Loader2, X, User, MapPin, Store, Trash2, Utensils, Grid3X3, Mail, Key, Eye, EyeOff } from 'lucide-react';
+import { Permission, SystemUser, Role, Branch, Printer as PrinterType, Table, TableStatus } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { useApp } from '../context/AppContext';
 
-type ViewMode = 'GENERAL' | 'USERS' | 'ROLES' | 'BRANCHES' | 'PRINTERS' | 'AUDIT' | 'REPORTS';
+type ViewMode = 'GENERAL' | 'USERS' | 'ROLES' | 'BRANCHES' | 'FLOOR_PLAN' | 'PRINTERS' | 'AUDIT' | 'REPORTS';
 
 interface SettingsProps {
   onNotify: (msg: string, type: 'success' | 'error' | 'info') => void;
@@ -20,6 +20,101 @@ const Toggle: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked,
     <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${checked ? 'left-6' : 'left-1'}`}></div>
   </button>
 );
+
+const TableModal = ({ 
+  table, 
+  onClose, 
+  onSave,
+  onDelete 
+}: { 
+  table?: Table | null; 
+  onClose: () => void; 
+  onSave: (t: Partial<Table>) => void; 
+  onDelete?: (id: string) => void;
+}) => {
+  const [formData, setFormData] = useState<Partial<Table>>(
+    table || {
+      name: '',
+      seats: 4,
+      zone: 'Indoor',
+      status: TableStatus.AVAILABLE
+    }
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-brand-surface w-full max-w-md rounded-xl border border-gray-200 dark:border-neutral-700 shadow-2xl overflow-hidden flex flex-col">
+        <div className="p-6 border-b border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 flex justify-between items-center">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+            {table ? 'Edit Table' : 'Add New Table'}
+          </h3>
+          <button onClick={onClose} className="text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white"><X size={20}/></button>
+        </div>
+        
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Table Name / ID</label>
+            <input 
+              type="text" 
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none"
+              placeholder="e.g. T-10"
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Seats</label>
+            <input 
+              type="number" 
+              value={formData.seats}
+              onChange={(e) => setFormData({...formData, seats: parseInt(e.target.value) || 0})}
+              className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Zone / Area</label>
+            <select 
+              value={formData.zone}
+              onChange={(e) => setFormData({...formData, zone: e.target.value})}
+              className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none"
+            >
+              <option value="Indoor">Indoor</option>
+              <option value="Outdoor">Outdoor</option>
+              <option value="Terrace">Terrace</option>
+              <option value="VIP">VIP Lounge</option>
+              <option value="Bar">Bar Area</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 flex justify-between items-center gap-3">
+           {table && onDelete ? (
+             <button 
+                onClick={() => onDelete(table.id)} 
+                className="px-4 py-3 rounded-lg font-bold text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 border border-transparent hover:border-red-200 dark:hover:border-red-900/50"
+             >
+                <Trash2 size={18} />
+             </button>
+           ) : <div></div>}
+           
+           <div className="flex gap-3">
+             <button onClick={onClose} className="px-6 py-3 rounded-lg font-bold text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white hover:bg-gray-200 dark:hover:bg-neutral-800">Cancel</button>
+             <button 
+               onClick={() => onSave(formData)}
+               disabled={!formData.name}
+               className="px-6 py-3 rounded-lg font-bold bg-brand-red text-white hover:bg-brand-redHover shadow-lg shadow-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+             >
+               Save Table
+             </button>
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const PrinterModal = ({ 
   printer, 
@@ -138,9 +233,11 @@ const UserModal = ({
   onClose: () => void; 
   onSave: (user: Partial<SystemUser>) => void; 
 }) => {
-  const [formData, setFormData] = useState<Partial<SystemUser>>(
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState<Partial<SystemUser & { password?: string }>>(
     user || {
       username: '',
+      email: '',
       roleId: roles[0]?.id || '',
       status: 'ACTIVE',
       staffId: ''
@@ -166,21 +263,62 @@ const UserModal = ({
           <button onClick={onClose} className="text-gray-500 dark:text-neutral-500 hover:text-black dark:hover:text-white"><X size={20}/></button>
         </div>
         
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Username</label>
-            <input 
-              type="text" 
-              value={formData.username}
-              onChange={(e) => setFormData({...formData, username: e.target.value})}
-              className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg p-3 text-gray-900 dark:text-white focus:border-brand-red outline-none"
-              placeholder="j.doe"
-              autoFocus
-            />
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase tracking-wider">Username</label>
+            <div className="relative">
+               <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+               <input 
+                 type="text" 
+                 value={formData.username}
+                 onChange={(e) => setFormData({...formData, username: e.target.value})}
+                 className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg py-3 pl-10 pr-3 text-gray-900 dark:text-white focus:border-brand-red outline-none"
+                 placeholder="j.doe"
+                 autoFocus
+               />
+            </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Role</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase tracking-wider">Email Address</label>
+            <div className="relative">
+               <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+               <input 
+                 type="email" 
+                 value={formData.email || ''}
+                 onChange={(e) => setFormData({...formData, email: e.target.value})}
+                 className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg py-3 pl-10 pr-3 text-gray-900 dark:text-white focus:border-brand-red outline-none"
+                 placeholder="staff@foodika.app"
+               />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase tracking-wider">
+               {user ? 'Change Password' : 'Password'}
+            </label>
+            <div className="relative">
+               <Key size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+               <input 
+                 type={showPassword ? 'text' : 'password'} 
+                 value={formData.password || ''}
+                 onChange={(e) => setFormData({...formData, password: e.target.value})}
+                 className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg py-3 pl-10 pr-10 text-gray-900 dark:text-white focus:border-brand-red outline-none"
+                 placeholder="••••••••"
+               />
+               <button 
+                 type="button"
+                 onClick={() => setShowPassword(!showPassword)}
+                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+               >
+                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+               </button>
+            </div>
+            {user && <p className="text-[10px] text-gray-500 mt-1">Leave blank to keep current password.</p>}
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase tracking-wider">Role & Authority</label>
             <select 
               value={formData.roleId}
               onChange={(e) => setFormData({...formData, roleId: e.target.value})}
@@ -193,7 +331,7 @@ const UserModal = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Link Staff Member (HR)</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase tracking-wider">Link Staff Member (HR)</label>
             <select 
               value={formData.staffId || ''}
               onChange={(e) => setFormData({...formData, staffId: e.target.value})}
@@ -204,21 +342,20 @@ const UserModal = ({
                 <option key={s.id} value={s.id}>{s.fullName} ({s.role})</option>
               ))}
             </select>
-            <p className="text-[10px] text-gray-500 dark:text-neutral-500 mt-1">Links this login to a specific employee for performance tracking.</p>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase">Account Status</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-neutral-500 mb-2 uppercase tracking-wider">Account Status</label>
             <div className="flex gap-2">
                <button 
                  onClick={() => setFormData({...formData, status: 'ACTIVE'})}
-                 className={`flex-1 py-2 rounded-lg text-xs font-bold border ${formData.status === 'ACTIVE' ? 'bg-green-100 dark:bg-green-900/20 border-green-200 dark:border-green-900 text-green-600 dark:text-green-500' : 'bg-gray-100 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-neutral-500'}`}
+                 className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${formData.status === 'ACTIVE' ? 'bg-green-100 dark:bg-green-900/20 border-green-200 dark:border-green-900 text-green-600 dark:text-green-500' : 'bg-gray-100 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-neutral-500'}`}
                >
                  ACTIVE
                </button>
                <button 
                  onClick={() => setFormData({...formData, status: 'LOCKED'})}
-                 className={`flex-1 py-2 rounded-lg text-xs font-bold border ${formData.status === 'LOCKED' ? 'bg-red-100 dark:bg-red-900/20 border-red-200 dark:border-red-900 text-red-600 dark:text-red-500' : 'bg-gray-100 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-neutral-500'}`}
+                 className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${formData.status === 'LOCKED' ? 'bg-red-100 dark:bg-red-900/20 border-red-200 dark:border-red-900 text-red-600 dark:text-red-500' : 'bg-gray-100 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-neutral-500'}`}
                >
                  LOCKED
                </button>
@@ -230,7 +367,7 @@ const UserModal = ({
            <button onClick={onClose} className="px-6 py-3 rounded-lg font-bold text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white hover:bg-gray-200 dark:hover:bg-neutral-800">Cancel</button>
            <button 
              onClick={handleSubmit}
-             disabled={!formData.username}
+             disabled={!formData.username || !formData.email}
              className="px-6 py-3 rounded-lg font-bold bg-brand-red text-white hover:bg-brand-redHover shadow-lg shadow-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
            >
              Save User
@@ -343,7 +480,8 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
     users, addUser, updateUser, 
     roles, updateRolePermissions,
     printers, addPrinter, updatePrinter, removePrinter,
-    branches, addBranch, updateBranch 
+    branches, addBranch, updateBranch,
+    tables, addTable, updateTable, removeTable
   } = useApp();
   
   const [view, setView] = useState<ViewMode>('GENERAL');
@@ -356,6 +494,10 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
   // Branch Management State
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
+
+  // Table Management State
+  const [showTableModal, setShowTableModal] = useState(false);
+  const [editingTable, setEditingTable] = useState<Table | null>(null);
 
   // Printer Management State
   const [showPrinterModal, setShowPrinterModal] = useState(false);
@@ -380,7 +522,6 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
   const [reportResult, setReportResult] = useState<any>(null);
 
   const generateMockData = () => {
-    // ... [Same implementation as before] ...
     const multiplier = {
       'TODAY': 1,
       'THIS_WEEK': 7,
@@ -455,7 +596,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
     onNotify('Settings saved successfully.', 'success');
   };
 
-  const handleUserSave = (userData: Partial<SystemUser>) => {
+  const handleUserSave = (userData: Partial<SystemUser & { password?: string }>) => {
     if (editingUser) {
       updateUser(editingUser.id, userData);
       onNotify('User updated successfully.', 'success');
@@ -463,6 +604,9 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
       const newUser: SystemUser = {
         id: `u-${Date.now()}`,
         username: userData.username!,
+        email: userData.email,
+        password: userData.password,
+        pin: userData.password, // Fallback pin same as password for simplicity
         roleId: userData.roleId!,
         roleName: userData.roleName!,
         status: userData.status || 'ACTIVE',
@@ -493,6 +637,25 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
     }
     setShowBranchModal(false);
     setEditingBranch(null);
+  };
+
+  const handleTableSave = (tableData: Partial<Table>) => {
+    if (editingTable) {
+        updateTable(editingTable.id, tableData);
+        onNotify('Table updated successfully.', 'success');
+    } else {
+        const newTable: Table = {
+            id: `t-${Date.now()}`,
+            name: tableData.name!,
+            seats: tableData.seats || 4,
+            zone: tableData.zone || 'Indoor',
+            status: TableStatus.AVAILABLE
+        };
+        addTable(newTable);
+        onNotify('New table added to floor plan.', 'success');
+    }
+    setShowTableModal(false);
+    setEditingTable(null);
   };
 
   const handlePrinterSave = (printerData: Partial<PrinterType>) => {
@@ -595,6 +758,15 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
         />
       )}
 
+      {showTableModal && (
+        <TableModal
+          table={editingTable}
+          onClose={() => { setShowTableModal(false); setEditingTable(null); }}
+          onSave={handleTableSave}
+          onDelete={(id) => { removeTable(id); setShowTableModal(false); }}
+        />
+      )}
+
       {showPrinterModal && (
         <PrinterModal
           printer={editingPrinter}
@@ -614,6 +786,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
           <NavButton id="USERS" icon={Users} label="Users & Access" />
           <NavButton id="ROLES" icon={Shield} label="Roles & Permissions" />
           <NavButton id="BRANCHES" icon={MapPin} label="Locations & Branches" />
+          <NavButton id="FLOOR_PLAN" icon={Grid3X3} label="Tables & Floor Plan" />
           <NavButton id="PRINTERS" icon={Printer} label="Printers & Hardware" />
           <NavButton id="REPORTS" icon={BarChart2} label="Reports & Data" />
           <NavButton id="AUDIT" icon={FileText} label="Audit Logs" />
@@ -753,11 +926,16 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
                        {users.map(user => (
                           <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors">
                              <td className="p-4">
-                                <div className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                   <User size={16} className="text-gray-400 dark:text-neutral-500" />
-                                   {user.username}
+                                <div className="font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                                   <div className="p-2 rounded-lg bg-gray-100 dark:bg-neutral-900 text-gray-400">
+                                      <User size={16} />
+                                   </div>
+                                   <div>
+                                      <div className="font-bold">{user.username}</div>
+                                      <div className="text-[10px] text-gray-500 font-mono">{user.email || 'no-email@set.com'}</div>
+                                   </div>
                                 </div>
-                                {user.staffId && <div className="text-xs text-gray-500 dark:text-neutral-500 ml-6">Linked to: {user.staffId}</div>}
+                                {user.staffId && <div className="text-[10px] text-gray-400 ml-11 mt-1 font-medium">Linked to: {user.staffId}</div>}
                              </td>
                              <td className="p-4">
                                 <span className="bg-gray-200 dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 px-2 py-1 rounded text-xs font-bold text-gray-700 dark:text-white">{user.roleName}</span>
@@ -774,7 +952,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
                              <td className="p-4 text-right">
                                 <button 
                                   onClick={() => { setEditingUser(user); setShowUserModal(true); }}
-                                  className="text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white text-xs font-bold underline bg-gray-100 dark:bg-neutral-800 px-3 py-1.5 rounded hover:bg-gray-200 dark:hover:bg-neutral-700"
+                                  className="text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white text-xs font-bold underline bg-gray-100 dark:bg-neutral-800 px-3 py-1.5 rounded hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors"
                                 >
                                   Edit
                                 </button>
@@ -847,6 +1025,48 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
                        ))}
                     </tbody>
                  </table>
+              </div>
+           </div>
+        )}
+
+        {/* FLOOR PLAN (TABLES) */}
+        {view === 'FLOOR_PLAN' && (
+           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="flex justify-between items-center">
+                 <div>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Tables & Floor Plan</h1>
+                    <p className="text-gray-500 dark:text-neutral-400">Configure dining tables, seating capacity, and floor zones.</p>
+                 </div>
+                 <button 
+                   onClick={() => { setEditingTable(null); setShowTableModal(true); }}
+                   className="bg-brand-red hover:bg-brand-redHover text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold shadow-lg shadow-red-900/20"
+                 >
+                    <Plus size={18} /> Add Table
+                 </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                 {tables.map(table => (
+                   <div key={table.id} className="bg-white dark:bg-brand-surface border border-gray-200 dark:border-neutral-800 rounded-xl p-5 hover:border-brand-red transition-all group relative overflow-hidden shadow-sm">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 rounded-lg bg-gray-100 dark:bg-neutral-900 text-gray-500 dark:text-neutral-400 group-hover:bg-brand-red/10 group-hover:text-brand-red transition-colors">
+                           <Utensils size={20} />
+                        </div>
+                        <button 
+                          onClick={() => { setEditingTable(table); setShowTableModal(true); }}
+                          className="p-1.5 text-gray-400 hover:text-black dark:hover:text-white"
+                        >
+                           <SettingsIcon size={16} />
+                        </button>
+                      </div>
+                      <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{table.name}</h3>
+                      <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">{table.seats} Seats • {table.zone}</p>
+                      <div className="mt-4 pt-4 border-t border-gray-100 dark:border-neutral-800 flex justify-between items-center">
+                        <span className="text-[10px] font-bold uppercase text-gray-400">Status</span>
+                        <span className="text-[10px] font-bold uppercase text-green-500">{table.status}</span>
+                      </div>
+                   </div>
+                 ))}
               </div>
            </div>
         )}
@@ -987,7 +1207,6 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
                  </div>
               </div>
 
-              {/* Configuration Card */}
               <div className="bg-white dark:bg-brand-surface border border-gray-200 dark:border-neutral-800 rounded-xl p-6 shadow-sm">
                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <BarChart2 size={20} className="text-brand-red" /> Report Configuration
@@ -1044,26 +1263,10 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
                        </button>
                     </div>
                  </div>
-                 
-                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-neutral-800 flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                       <div className="w-4 h-4 rounded border border-gray-400 dark:border-neutral-600 bg-brand-red flex items-center justify-center text-white"><Check size={12}/></div>
-                       <span className="text-sm text-gray-700 dark:text-neutral-300">Revenue</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                       <div className="w-4 h-4 rounded border border-gray-400 dark:border-neutral-600 bg-brand-red flex items-center justify-center text-white"><Check size={12}/></div>
-                       <span className="text-sm text-gray-700 dark:text-neutral-300">Profit Margin %</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                       <div className="w-4 h-4 rounded border border-gray-400 dark:border-neutral-600 bg-brand-red flex items-center justify-center text-white"><Check size={12}/></div>
-                       <span className="text-sm text-gray-700 dark:text-neutral-300">Avg Order Value</span>
-                    </label>
-                 </div>
               </div>
 
-              {/* Report Output */}
               {reportResult && (
-                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                     <div className="flex justify-between items-center">
                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                          {reportType.charAt(0).toUpperCase() + reportType.slice(1).toLowerCase()} Report: {reportPeriod.replace('_', ' ')}
@@ -1096,21 +1299,13 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
                     </div>
 
                     <div className="bg-white dark:bg-brand-surface border border-gray-200 dark:border-neutral-800 rounded-xl p-6 h-96 shadow-sm">
-                       <h4 className="text-sm font-bold text-gray-500 dark:text-neutral-400 mb-6 flex justify-between">
-                         <span>Analysis by {groupBy.replace(/_/g, ' ')}</span>
-                         <span className="text-xs text-gray-400 dark:text-neutral-500 font-normal">Generated on {new Date().toLocaleTimeString()}</span>
-                       </h4>
                        <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={reportResult.chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                              <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#333' : '#e5e7eb'} vertical={false} />
                              <XAxis dataKey="name" stroke={theme === 'dark' ? '#666' : '#9ca3af'} tick={{fill: theme === 'dark' ? '#999' : '#6b7280', fontSize: 12}} tickLine={false} axisLine={false} />
                              <YAxis yAxisId="left" orientation="left" stroke={theme === 'dark' ? '#666' : '#9ca3af'} tick={{fill: theme === 'dark' ? '#999' : '#6b7280', fontSize: 12}} tickLine={false} axisLine={false} />
                              <YAxis yAxisId="right" orientation="right" stroke={theme === 'dark' ? '#666' : '#9ca3af'} tick={{fill: theme === 'dark' ? '#999' : '#6b7280', fontSize: 12}} tickLine={false} axisLine={false} />
-                             <Tooltip 
-                               cursor={{fill: theme === 'dark' ? '#222' : '#f3f4f6'}} 
-                               contentStyle={{backgroundColor: theme === 'dark' ? '#171717' : '#fff', border: `1px solid ${theme === 'dark' ? '#333' : '#e5e7eb'}`, borderRadius: '8px'}} 
-                               itemStyle={{color: theme === 'dark' ? '#fff' : '#000'}} 
-                             />
+                             <Tooltip cursor={{fill: theme === 'dark' ? '#222' : '#f3f4f6'}} contentStyle={{backgroundColor: theme === 'dark' ? '#171717' : '#fff', border: `1px solid ${theme === 'dark' ? '#333' : '#e5e7eb'}`, borderRadius: '8px'}} itemStyle={{color: theme === 'dark' ? '#fff' : '#000'}} />
                              <Legend wrapperStyle={{ color: theme === 'dark' ? '#999' : '#6b7280' }} />
                              <Bar yAxisId="left" dataKey={reportResult.chartConfig.bar1} name={reportResult.chartConfig.name1} fill={reportResult.chartConfig.color1} radius={[4, 4, 0, 0]} />
                              <Bar yAxisId="right" dataKey={reportResult.chartConfig.bar2} name={reportResult.chartConfig.name2} fill={reportResult.chartConfig.color2} radius={[4, 4, 0, 0]} />
@@ -1132,13 +1327,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
                  </div>
                  <div className="relative">
                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-neutral-500" />
-                    <input 
-                      type="text" 
-                      placeholder="Search logs..." 
-                      value={auditSearch}
-                      onChange={(e) => setAuditSearch(e.target.value)}
-                      className="bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg py-2 pl-9 pr-4 text-sm text-gray-900 dark:text-white focus:border-brand-red outline-none w-64"
-                    />
+                    <input type="text" placeholder="Search logs..." value={auditSearch} onChange={(e) => setAuditSearch(e.target.value)} className="bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg py-2 pl-9 pr-4 text-sm text-gray-900 dark:text-white focus:border-brand-red outline-none w-64" />
                  </div>
               </div>
 
@@ -1150,34 +1339,22 @@ export const Settings: React.FC<SettingsProps> = ({ onNotify }) => {
                           <th className="p-4">User</th>
                           <th className="p-4">Module</th>
                           <th className="p-4">Action</th>
-                          <th className="p-4">Details</th>
                           <th className="p-4 text-center">Severity</th>
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-neutral-800">
                        {filteredAuditLogs.length > 0 ? filteredAuditLogs.map(log => (
                           <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors">
-                             <td className="p-4 text-gray-500 dark:text-neutral-500 font-mono text-xs">
-                                {log.timestamp.toLocaleString()}
-                             </td>
+                             <td className="p-4 text-gray-500 dark:text-neutral-500 font-mono text-xs">{log.timestamp.toLocaleString()}</td>
                              <td className="p-4 text-gray-900 dark:text-white font-bold">{log.user}</td>
-                             <td className="p-4">
-                                <span className="bg-gray-100 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 px-2 py-1 rounded text-[10px] font-bold text-gray-600 dark:text-neutral-300 uppercase">{log.module}</span>
-                             </td>
+                             <td className="p-4"><span className="bg-gray-100 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 px-2 py-1 rounded text-[10px] font-bold text-gray-600 dark:text-neutral-300 uppercase">{log.module}</span></td>
                              <td className="p-4 text-gray-900 dark:text-white">{log.action}</td>
-                             <td className="p-4 text-gray-600 dark:text-neutral-400 max-w-md truncate">{log.details}</td>
                              <td className="p-4 text-center">
-                                <span className={`text-[10px] font-bold px-2 py-1 rounded border uppercase ${log.severity === 'CRITICAL' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-500 border-red-200 dark:border-red-900' : log.severity === 'WARNING' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-500 border-yellow-200 dark:border-yellow-900' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-500 border-blue-200 dark:border-blue-900'}`}>
-                                   {log.severity}
-                                </span>
+                                <span className={`text-[10px] font-bold px-2 py-1 rounded border uppercase ${log.severity === 'CRITICAL' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-500 border-red-200 dark:border-red-900' : log.severity === 'WARNING' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-500 border-yellow-200 dark:border-yellow-900' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-500 border-blue-200 dark:border-blue-900'}`}>{log.severity}</span>
                              </td>
                           </tr>
                        )) : (
-                         <tr>
-                           <td colSpan={6} className="p-8 text-center text-gray-500 dark:text-neutral-500 italic">
-                             No logs found matching "{auditSearch}"
-                           </td>
-                         </tr>
+                         <tr><td colSpan={6} className="p-8 text-center text-gray-500 dark:text-neutral-500 italic">No logs found matching "{auditSearch}"</td></tr>
                        )}
                     </tbody>
                  </table>

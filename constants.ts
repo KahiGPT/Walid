@@ -10,17 +10,17 @@ export const BRANCHES: Branch[] = [
 ];
 
 export const CATEGORIES: Category[] = [
-  { id: '1', name: 'Main Courses', nameAr: 'الأطباق الرئيسية' },
-  { id: '2', name: 'Appetizers', nameAr: 'المقبلات' },
-  { id: '3', name: 'Beverages', nameAr: 'المشروبات' },
-  { id: '4', name: 'Desserts', nameAr: 'التحلية' },
+  { id: '1', name: 'Main Courses' },
+  { id: '2', name: 'Appetizers' },
+  { id: '3', name: 'Beverages' },
+  { id: '4', name: 'Desserts' },
 ];
 
 export const MENU_ITEMS: MenuItem[] = [
   { 
     id: '101', 
     name: 'Chicken Machboos', 
-    nameAr: 'مكبوس دجاج', 
+    nameAr: 'مجبوس دجاج',
     price: 4.500, 
     categoryId: '1', 
     cost: 1.200, 
@@ -30,7 +30,7 @@ export const MENU_ITEMS: MenuItem[] = [
   { 
     id: '102', 
     name: 'Lamb Biryani', 
-    nameAr: 'برياني لحم', 
+    nameAr: 'برياني لحم',
     price: 5.250, 
     categoryId: '1', 
     cost: 1.800, 
@@ -40,7 +40,7 @@ export const MENU_ITEMS: MenuItem[] = [
   { 
     id: '103', 
     name: 'Hummus', 
-    nameAr: 'حمص', 
+    nameAr: 'حمص',
     price: 1.250, 
     categoryId: '2', 
     cost: 0.300, 
@@ -50,7 +50,7 @@ export const MENU_ITEMS: MenuItem[] = [
   { 
     id: '104', 
     name: 'Fattoush', 
-    nameAr: 'فتوش', 
+    nameAr: 'فتوش',
     price: 1.750, 
     categoryId: '2', 
     cost: 0.450,
@@ -59,7 +59,7 @@ export const MENU_ITEMS: MenuItem[] = [
   { 
     id: '105', 
     name: 'Lemon Mint', 
-    nameAr: 'ليمون نعناع', 
+    nameAr: 'ليمون نعناع',
     price: 1.500, 
     categoryId: '3', 
     cost: 0.200,
@@ -68,7 +68,7 @@ export const MENU_ITEMS: MenuItem[] = [
   { 
     id: '106', 
     name: 'Soft Drink', 
-    nameAr: 'مشروب غازي', 
+    nameAr: 'مشروب غازي',
     price: 0.750, 
     categoryId: '3', 
     cost: 0.150,
@@ -77,7 +77,7 @@ export const MENU_ITEMS: MenuItem[] = [
   { 
     id: '107', 
     name: 'Umm Ali', 
-    nameAr: 'أم علي', 
+    nameAr: 'أم علي',
     price: 2.000, 
     categoryId: '4', 
     cost: 0.600,
@@ -86,7 +86,7 @@ export const MENU_ITEMS: MenuItem[] = [
   { 
     id: '108', 
     name: 'Grilled Halloumi', 
-    nameAr: 'حلوم مشوي', 
+    nameAr: 'حلوم مشوي',
     price: 2.250, 
     categoryId: '2', 
     cost: 0.800,
@@ -482,7 +482,7 @@ export const GENERAL_SETTINGS: GeneralSettings = {
   currency: 'KWD',
   taxRate: 0,
   serviceCharge: 10,
-  printLanguage: 'BOTH'
+  printLanguage: 'EN'
 };
 
 export const ROLES_CONFIG: Role[] = [
@@ -494,9 +494,9 @@ export const ROLES_CONFIG: Role[] = [
 ];
 
 export const SYSTEM_USERS: SystemUser[] = [
-  { id: 'u1', username: 'admin', roleId: 'ADMIN', roleName: 'Administrator', status: 'ACTIVE', lastLogin: new Date() },
-  { id: 'u2', username: 'ahmed.m', roleId: 'MANAGER', roleName: 'Store Manager', staffId: 'S-001', status: 'ACTIVE', lastLogin: new Date(Date.now() - 86400000) },
-  { id: 'u3', username: 'sarah.cash', roleId: 'CASHIER', roleName: 'Cashier', staffId: 'S-002', status: 'ACTIVE', lastLogin: new Date(Date.now() - 3600000) },
+  { id: 'u1', username: 'admin', email: 'admin@foodika.app', roleId: 'ADMIN', roleName: 'Administrator', status: 'ACTIVE', lastLogin: new Date() },
+  { id: 'u2', username: 'ahmed.m', email: 'ahmed.manager@foodika.app', roleId: 'MANAGER', roleName: 'Store Manager', staffId: 'S-001', status: 'ACTIVE', lastLogin: new Date(Date.now() - 86400000) },
+  { id: 'u3', username: 'sarah.cash', email: 'sarah.c@foodika.app', roleId: 'CASHIER', roleName: 'Cashier', staffId: 'S-002', status: 'ACTIVE', lastLogin: new Date(Date.now() - 3600000) },
 ];
 
 export const AUDIT_LOGS: AuditLog[] = [

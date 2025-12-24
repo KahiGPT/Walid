@@ -670,7 +670,8 @@ export const CallCenter: React.FC<CallCenterProps> = ({ onNotify, onPlaceOrder }
                           <span className="text-gray-900 dark:text-white font-bold text-xs">{order.id}</span>
                           <span className="text-[10px] text-gray-500 dark:text-neutral-500 bg-gray-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-neutral-700">{new Date(order.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                         </div>
-                        <div className={`text-[10px] font-bold px-2 py-0.5 rounded ${order.status === 'Completed' ? 'text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-900/20' : 'text-yellow-600 dark:text-yellow-500 bg-yellow-100 dark:bg-yellow-900/20'}`}>
+                        {/* Corrected order status comparison */}
+                        <div className={`text-[10px] font-bold px-2 py-0.5 rounded ${order.status === OrderStatus.COMPLETED ? 'text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-900/20' : 'text-yellow-600 dark:text-yellow-500 bg-yellow-100 dark:bg-yellow-900/20'}`}>
                           {order.status}
                         </div>
                       </div>
